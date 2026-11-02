@@ -1,3 +1,7 @@
+'use client';
+
+import PrototypeHubPage from './prototype/page';
+
 export default function Home() {
-  return <script dangerouslySetInnerHTML={{__html: 'window.location.href = "/dashboard"'}} />;
+  return <PrototypeHubPage />;
 }
