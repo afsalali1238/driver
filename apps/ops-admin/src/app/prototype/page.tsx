@@ -19,7 +19,7 @@ export default function PrototypeHubPage() {
   const [activeTab, setActiveTab] = useState<ActiveView>('LAUNCHPAD');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [trips, setTrips] = useState<TripData[]>(DUMMY_TRIPS);
-  const [selectedTripId, setSelectedTripId] = useState<string>('KSP-TR-2041');
+  const [selectedTripId, setSelectedTripId] = useState<string>(DUMMY_TRIPS[0].id);
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationTick, setSimulationTick] = useState(0);
 
@@ -102,7 +102,7 @@ export default function PrototypeHubPage() {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans pb-24 overflow-x-hidden transition-colors ${
+    <div className={`min-h-screen flex flex-col font-sans pb-16 overflow-x-hidden transition-colors ${
       isLight ? 'bg-slate-50 text-slate-900' : 'bg-[#0B0F19] text-slate-100'
     }`}>
       {/* Sticky Top Navigation Bar */}
@@ -208,7 +208,7 @@ export default function PrototypeHubPage() {
               >
                 {trips.map(t => (
                   <option key={t.id} value={t.id}>
-                    {t.vehiclePlate} ({t.cargoDescription.split(' ')[0]}) - {t.status}
+                    {t.category === 'EQUIPMENT' ? '🚜 ' : '📦 '}{t.vehiclePlate} ({t.cargoDescription.split(' ')[0]}) - {t.status}
                   </option>
                 ))}
               </select>
@@ -477,24 +477,24 @@ export default function PrototypeHubPage() {
           </div>
         )}
 
-        {/* Back Button Banner when viewing a specific app */}
+        {/* Compact Back Button Banner when viewing a specific app */}
         {activeTab !== 'LAUNCHPAD' && (
-          <div className={`flex items-center justify-between p-3 rounded-2xl text-xs border shadow-sm transition-colors ${
+          <div className={`flex items-center justify-between px-3 py-1.5 rounded-xl text-xs border shadow-sm transition-colors ${
             isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-slate-800 text-white'
           }`}>
             <button
               onClick={() => switchTab('LAUNCHPAD')}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl font-bold transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold transition-colors ${
                 isLight 
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200' 
                   : 'bg-slate-800 hover:bg-slate-700 text-slate-200'
               }`}
             >
-              <ArrowLeft className="w-4 h-4 text-amber-500" />
-              <span>← Back to All Apps Launchpad</span>
+              <ArrowLeft className="w-3.5 h-3.5 text-amber-500" />
+              <span>← Back to All Apps</span>
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <span className={isLight ? 'text-slate-500 hidden sm:inline' : 'text-slate-400 hidden sm:inline'}>
                 Viewing:
               </span>
@@ -528,27 +528,15 @@ export default function PrototypeHubPage() {
         )}
 
         {/* ======================================================== */}
-        {/* VIEW 2: DRIVER MOBILE APP SIMULATOR (WITH FULL SCROLL) */}
+        {/* VIEW 2: DRIVER MOBILE APP SIMULATOR (STUDIO FIT) */}
         {/* ======================================================== */}
         {activeTab === 'DRIVER' && (
-          <div className="space-y-4 pb-12">
-            <div className="text-center max-w-lg mx-auto">
-              <h2 className={`text-xl font-black flex items-center justify-center gap-2 ${
-                isLight ? 'text-slate-900' : 'text-white'
-              }`}>
-                <Smartphone className="w-6 h-6 text-amber-500" />
-                Driver Mobile Application Simulator
-              </h2>
-              <p className={`text-xs mt-1 ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                Optimized for heavy freight field drivers. Scroll down to test the active trip stage progression, interactive touch signature canvas, inspection audit, and offline SQLite buffering!
-              </p>
-            </div>
-            <DriverMobileView
-              trip={selectedTrip}
-              onTripStatusChange={handleTripStatusChange}
-              theme={theme}
-            />
-          </div>
+          <DriverMobileView
+            trip={selectedTrip}
+            onTripStatusChange={handleTripStatusChange}
+            theme={theme}
+            onBackToLaunchpad={() => switchTab('LAUNCHPAD')}
+          />
         )}
 
         {/* ======================================================== */}

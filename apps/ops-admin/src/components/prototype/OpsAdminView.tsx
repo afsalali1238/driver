@@ -6,7 +6,7 @@ import InteractiveMap from './InteractiveMap';
 import { 
   Truck, ShieldCheck, MapPin, Gauge, Radio, Play, Pause, 
   RotateCcw, CheckCircle2, AlertTriangle, FileText, Plus,
-  Search, ExternalLink, BatteryCharging, UserCheck, Eye
+  Search, ExternalLink, BatteryCharging, UserCheck, Eye, Layers
 } from './Icons';
 
 interface OpsAdminViewProps {
@@ -29,14 +29,16 @@ export default function OpsAdminView({
   theme = 'light'
 }: OpsAdminViewProps) {
   const isLight = theme === 'light';
-  const [selectedTripId, setSelectedTripId] = useState<string>(trips[0]?.id || 'KSP-TR-2041');
-  const [filter, setFilter] = useState<'ALL' | 'IN_TRANSIT' | 'ASSIGNED' | 'AVAILABLE'>('ALL');
+  const [selectedTripId, setSelectedTripId] = useState<string>(trips[0]?.id || 'KSP-EQ-101');
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'EQUIPMENT' | 'FREIGHT'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'IN_TRANSIT' | 'ASSIGNED' | 'DELIVERED'>('ALL');
   const [search, setSearch] = useState('');
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const [inspectEpodTrip, setInspectEpodTrip] = useState<TripData | null>(null);
 
   const filteredTrips = trips.filter(trip => {
-    if (filter !== 'ALL' && trip.status !== filter) return false;
+    if (categoryFilter !== 'ALL' && trip.category !== categoryFilter) return false;
+    if (statusFilter !== 'ALL' && trip.status !== statusFilter) return false;
     if (search && !trip.vehiclePlate.toLowerCase().includes(search.toLowerCase()) &&
         !trip.driverName.toLowerCase().includes(search.toLowerCase()) &&
         !trip.cargoDescription.toLowerCase().includes(search.toLowerCase())) {
@@ -45,10 +47,15 @@ export default function OpsAdminView({
     return true;
   });
 
-  const selectedTrip = trips.find(t => t.id === selectedTripId) || trips[0];
+  const selectedTrip = trips.find(t => t.id === selectedTripId) || filteredTrips[0] || trips[0];
+
+  // Dynamic calculations based on category
+  const activeCategoryTrips = categoryFilter === 'ALL' ? trips : trips.filter(t => t.category === categoryFilter);
+  const totalTons = activeCategoryTrips.reduce((acc, t) => acc + t.cargoWeightTon, 0).toFixed(1);
+  const movingCount = activeCategoryTrips.filter(t => t.status === 'IN_TRANSIT').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Banner & Telematics Simulation Control Bar */}
       <div className={`rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4 transition-colors ${
         isLight
@@ -99,12 +106,102 @@ export default function OpsAdminView({
         </div>
       </div>
 
+      {/* ======================================================== */}
+      {/* ASSET CATEGORY SWITCHER (EQUIPMENT vs FREIGHT TOGGLE) */}
+      {/* ======================================================== */}
+      <div className={`p-3 rounded-2xl border flex flex-wrap items-center justify-between gap-3 shadow-sm transition-colors ${
+        isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
+      }`}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-mono font-black text-slate-500 uppercase tracking-wider pl-1">
+            FLEET ASSET CATEGORY:
+          </span>
+
+          <div className={`flex p-1 rounded-xl border text-xs font-bold ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-slate-950 border-slate-800'
+          }`}>
+            <button
+              onClick={() => {
+                setCategoryFilter('ALL');
+                setSelectedTripId(trips[0].id);
+              }}
+              className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                categoryFilter === 'ALL'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950 font-black shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              <span>🌟 All Assets</span>
+              <span className="font-mono text-[10px] opacity-75">({trips.length})</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCategoryFilter('EQUIPMENT');
+                const firstEq = trips.find(t => t.category === 'EQUIPMENT');
+                if (firstEq) setSelectedTripId(firstEq.id);
+              }}
+              className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                categoryFilter === 'EQUIPMENT'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-sm shadow-amber-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-amber-600'
+              }`}
+            >
+              <span>🚜 Heavy Equipment</span>
+              <span className="font-mono text-[10px] opacity-75">
+                ({trips.filter(t => t.category === 'EQUIPMENT').length})
+              </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setCategoryFilter('FREIGHT');
+                const firstFr = trips.find(t => t.category === 'FREIGHT');
+                if (firstFr) setSelectedTripId(firstFr.id);
+              }}
+              className={`px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-all ${
+                categoryFilter === 'FREIGHT'
+                  ? 'bg-blue-600 text-white font-black shadow-sm shadow-blue-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-blue-600'
+              }`}
+            >
+              <span>📦 Commercial Freight</span>
+              <span className="font-mono text-[10px] opacity-75">
+                ({trips.filter(t => t.category === 'FREIGHT').length})
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Live Filter Indicator Description */}
+        <div className="text-xs font-mono flex items-center gap-2">
+          <span className="text-slate-400 hidden md:inline">Showing:</span>
+          <span className={`px-2 py-0.5 rounded font-bold text-xs ${
+            categoryFilter === 'EQUIPMENT' 
+              ? 'bg-amber-100 text-amber-800 border border-amber-300' 
+              : categoryFilter === 'FREIGHT' 
+                ? 'bg-blue-100 text-blue-800 border border-blue-300' 
+                : 'bg-slate-100 text-slate-800 border border-slate-200'
+          }`}>
+            {categoryFilter === 'EQUIPMENT' && '🚜 Heavy Machinery (CAT Excavators, Cranes, Boom Lifts, Generators)'}
+            {categoryFilter === 'FREIGHT' && '📦 Commercial Freight (Precast Beams, Shipping Containers, Pipe Spools, Steel)'}
+            {categoryFilter === 'ALL' && '🌐 Combined Fleet: 4 Equipment + 4 Freight Loads'}
+          </span>
+        </div>
+      </div>
+
       {/* KPI Stats Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <div className={`p-4 rounded-2xl border transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
-          <div className="text-slate-500 text-[11px] font-bold uppercase tracking-wider">Total Fleet</div>
-          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>{FLEET_METRICS.totalTrucks}</div>
-          <div className="text-slate-400 text-[10px] mt-0.5">Heavy trailers & lowbeds</div>
+          <div className="text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+            {categoryFilter === 'EQUIPMENT' ? 'Equipment Assets' : categoryFilter === 'FREIGHT' ? 'Freight Loads' : 'Total Fleet'}
+          </div>
+          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            {activeCategoryTrips.length}
+          </div>
+          <div className="text-slate-400 text-[10px] mt-0.5">
+            {categoryFilter === 'EQUIPMENT' ? 'Excavators, Cranes, Lifts' : categoryFilter === 'FREIGHT' ? 'Beams, Containers, Steel' : 'Combined assets'}
+          </div>
         </div>
 
         <div className={`p-4 rounded-2xl border border-l-4 border-l-blue-500 transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
@@ -112,26 +209,30 @@ export default function OpsAdminView({
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping"></span>
             En Route
           </div>
-          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>{trips.filter(t => t.status === 'IN_TRANSIT').length}</div>
+          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            {movingCount}
+          </div>
           <div className="text-slate-400 text-[10px] mt-0.5">Streaming 5s GPS batches</div>
         </div>
 
         <div className={`p-4 rounded-2xl border border-l-4 border-l-amber-500 transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
-          <div className="text-amber-600 text-[11px] font-bold uppercase tracking-wider">Assigned / Loading</div>
-          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>{trips.filter(t => t.status === 'ASSIGNED').length}</div>
-          <div className="text-slate-400 text-[10px] mt-0.5">Permits & checks verified</div>
+          <div className="text-amber-600 text-[11px] font-bold uppercase tracking-wider">Gross Weight</div>
+          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>
+            {totalTons} <span className="text-sm font-normal text-slate-500">Tons</span>
+          </div>
+          <div className="text-slate-400 text-[10px] mt-0.5">Total cargo tonnage en route</div>
         </div>
 
-        <div className={`p-4 rounded-2xl border border-l-4 border-l-emerald-500 transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
-          <div className="text-emerald-600 text-[11px] font-bold uppercase tracking-wider">Delivered Today</div>
-          <div className={`text-2xl font-black mt-1 font-mono ${isLight ? 'text-slate-900' : 'text-white'}`}>{trips.filter(t => t.status === 'DELIVERED').length}</div>
-          <div className="text-slate-400 text-[10px] mt-0.5">Digital ePOD timestamped</div>
+        <div className={`p-4 rounded-2xl border transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
+          <div className="text-slate-500 text-[11px] font-bold uppercase tracking-wider">GPS Precision</div>
+          <div className="text-emerald-600 text-2xl font-black mt-1 font-mono">{FLEET_METRICS.gpsUptime}</div>
+          <div className="text-slate-400 text-[10px] mt-0.5">Highways & Western desert</div>
         </div>
 
         <div className={`p-4 rounded-2xl border transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
           <div className="text-slate-500 text-[11px] font-bold uppercase tracking-wider">On-Time Rate</div>
           <div className="text-emerald-600 text-2xl font-black mt-1 font-mono">{FLEET_METRICS.onTimeRate}</div>
-          <div className="text-slate-400 text-[10px] mt-0.5">SLA benchmark</div>
+          <div className="text-slate-400 text-[10px] mt-0.5">SLA delivery benchmark</div>
         </div>
 
         <div className={`p-4 rounded-2xl border transition-colors ${isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'}`}>
@@ -142,19 +243,22 @@ export default function OpsAdminView({
       </div>
 
       {/* Main Operations Split View: Map + Vehicle Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left 8 Cols: Interactive UAE Telemetry Map */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        
+        {/* Left 8 Cols: Interactive UAE Telemetry Map (Leaflet Street / Satellite / Radar) */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="h-[480px]">
+          <div className="h-[520px] rounded-2xl overflow-hidden shadow-sm">
             <InteractiveMap
               trips={trips}
-              selectedTripId={selectedTripId}
+              selectedTripId={selectedTrip?.id}
               onSelectTrip={(trip) => setSelectedTripId(trip.id)}
               theme={theme}
+              categoryFilter={categoryFilter}
+              onCategoryChange={setCategoryFilter}
             />
           </div>
 
-          {/* Active Trip Telematics Bar */}
+          {/* Active Selected Vehicle Detail Card */}
           {selectedTrip && (
             <div className={`rounded-2xl p-4 transition-colors ${
               isLight ? 'bg-white border border-slate-200 shadow-sm' : 'bg-slate-900 border border-slate-800 shadow-lg'
@@ -162,14 +266,18 @@ export default function OpsAdminView({
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
                 <div className="flex items-center gap-3">
                   <span className={`font-mono font-black text-lg px-2.5 py-1 rounded border ${
-                    isLight ? 'bg-amber-50 text-amber-700 border-amber-300' : 'bg-slate-950 text-amber-400 border-amber-500/30'
+                    selectedTrip.category === 'EQUIPMENT' 
+                      ? 'bg-amber-50 text-amber-700 border-amber-300' 
+                      : 'bg-blue-50 text-blue-700 border-blue-300'
                   }`}>
-                    {selectedTrip.vehiclePlate}
+                    {selectedTrip.category === 'EQUIPMENT' ? '🚜 ' : '📦 '}{selectedTrip.vehiclePlate}
                   </span>
                   <div>
-                    <h3 className={`font-bold text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>{selectedTrip.cargoDescription}</h3>
-                    <p className="text-slate-500 text-xs">
-                      Permit: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{selectedTrip.transportPermit}</span> • Gross: <strong className="text-slate-800 dark:text-slate-200">{selectedTrip.cargoWeightTon} Ton</strong>
+                    <h3 className={`font-black text-sm ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                      {selectedTrip.cargoDescription}
+                    </h3>
+                    <p className="text-slate-500 text-xs mt-0.5">
+                      Permit: <span className="font-mono text-slate-700 dark:text-slate-300 font-bold">{selectedTrip.transportPermit}</span> • Gross: <strong className="text-slate-800 dark:text-slate-200">{selectedTrip.cargoWeightTon} Tons</strong>
                     </p>
                   </div>
                 </div>
@@ -232,7 +340,14 @@ export default function OpsAdminView({
             isLight ? 'bg-white border border-slate-200' : 'bg-slate-900 border border-slate-800 shadow-xl'
           }`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className={`font-black text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>FLEET VEHICLES</h3>
+              <div>
+                <h3 className={`font-black text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>
+                  FLEET ROSTER ({filteredTrips.length})
+                </h3>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {categoryFilter === 'ALL' ? 'Equipment + Freight' : categoryFilter === 'EQUIPMENT' ? 'Equipment Only' : 'Freight Only'}
+                </span>
+              </div>
               <button 
                 onClick={() => setShowDispatchModal(true)}
                 className="flex items-center gap-1 text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-2.5 py-1.5 rounded-xl transition-colors shadow-sm"
@@ -242,19 +357,19 @@ export default function OpsAdminView({
               </button>
             </div>
 
-            {/* Filter pills */}
+            {/* Status Filter pills */}
             <div className={`flex gap-1 mb-3 p-1 rounded-xl text-[11px] font-bold ${isLight ? 'bg-slate-100' : 'bg-slate-950'}`}>
-              {(['ALL', 'IN_TRANSIT', 'ASSIGNED', 'AVAILABLE'] as const).map(tab => (
+              {(['ALL', 'IN_TRANSIT', 'ASSIGNED', 'DELIVERED'] as const).map(tab => (
                 <button
                   key={tab}
-                  onClick={() => setFilter(tab)}
+                  onClick={() => setStatusFilter(tab)}
                   className={`flex-1 py-1 rounded-lg transition-all ${
-                    filter === tab 
+                    statusFilter === tab 
                       ? 'bg-white text-slate-950 shadow-sm font-black' 
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  {tab === 'ALL' ? 'All' : tab === 'IN_TRANSIT' ? 'Transit' : tab === 'ASSIGNED' ? 'Assigned' : 'Yard'}
+                  {tab === 'ALL' ? 'All' : tab === 'IN_TRANSIT' ? 'Transit' : tab === 'ASSIGNED' ? 'Assigned' : 'Done'}
                 </button>
               ))}
             </div>
@@ -276,9 +391,11 @@ export default function OpsAdminView({
             </div>
 
             {/* List */}
-            <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               {filteredTrips.map((trip) => {
-                const isSelected = trip.id === selectedTripId;
+                const isSelected = trip.id === selectedTrip?.id;
+                const isEquipment = trip.category === 'EQUIPMENT';
+
                 return (
                   <div
                     key={trip.id}
@@ -286,7 +403,9 @@ export default function OpsAdminView({
                     className={`p-3 rounded-xl border cursor-pointer transition-all ${
                       isSelected
                         ? isLight
-                          ? 'bg-amber-50/70 border-amber-500/80 shadow-md ring-1 ring-amber-500/30'
+                          ? isEquipment 
+                            ? 'bg-amber-50/70 border-amber-500/80 shadow-md ring-1 ring-amber-500/30' 
+                            : 'bg-blue-50/70 border-blue-500/80 shadow-md ring-1 ring-blue-500/30'
                           : 'bg-slate-800/90 border-amber-500/60 shadow-lg'
                         : isLight
                           ? 'bg-slate-50/80 border-slate-200 hover:bg-slate-100'
@@ -294,11 +413,21 @@ export default function OpsAdminView({
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded border ${
-                        isLight ? 'bg-white text-slate-900 border-slate-300' : 'bg-slate-900 text-white border-slate-700'
-                      }`}>
-                        {trip.vehiclePlate}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border ${
+                          isEquipment 
+                            ? 'bg-amber-100 text-amber-800 border-amber-300' 
+                            : 'bg-blue-100 text-blue-800 border-blue-300'
+                        }`}>
+                          {isEquipment ? '🚜 EQUIP' : '📦 FREIGHT'}
+                        </span>
+                        <span className={`font-mono font-bold text-xs px-2 py-0.5 rounded border ${
+                          isLight ? 'bg-white text-slate-900 border-slate-300' : 'bg-slate-900 text-white border-slate-700'
+                        }`}>
+                          {trip.vehiclePlate}
+                        </span>
+                      </div>
+
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
                         trip.status === 'IN_TRANSIT' ? 'bg-blue-500/15 text-blue-700 border border-blue-500/30' :
                         trip.status === 'ASSIGNED' ? 'bg-amber-500/15 text-amber-700 border border-amber-500/30' :
@@ -316,7 +445,7 @@ export default function OpsAdminView({
                     <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                       <span>👤 {trip.driverName}</span>
                       <span className="font-mono text-emerald-600 font-bold">
-                        {trip.status === 'IN_TRANSIT' ? `${trip.speedKmh} km/h • ${trip.etaMinutes}m ETA` : trip.vehicleType.split(' ')[0]}
+                        {trip.status === 'IN_TRANSIT' ? `${trip.speedKmh} km/h • ${trip.etaMinutes}m ETA` : `${trip.cargoWeightTon} Ton`}
                       </span>
                     </div>
 
@@ -328,8 +457,8 @@ export default function OpsAdminView({
                         }}
                         className="mt-2 w-full py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-700 text-[10px] font-bold flex items-center justify-center gap-1"
                       >
-                        <Eye className="w-3 h-3" />
-                        Inspect Verified ePOD
+                        <FileText className="w-3 h-3" />
+                        View Signed Consignment (ePOD)
                       </button>
                     )}
                   </div>
@@ -340,178 +469,75 @@ export default function OpsAdminView({
         </div>
       </div>
 
-      {/* Trips Dispatch Table */}
-      <div className={`rounded-2xl p-4 shadow-sm overflow-x-auto transition-colors ${
-        isLight ? 'bg-white border border-slate-200' : 'bg-slate-900 border border-slate-800 shadow-xl'
-      }`}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className={`font-black text-sm tracking-wide ${isLight ? 'text-slate-900' : 'text-white'}`}>ACTIVE DISPATCH MANIFESTS</h3>
-            <p className="text-slate-500 text-xs">Live telematics tracking with automated milestone capture</p>
-          </div>
-          <span className="text-xs font-mono text-slate-500">DATABASE: kasper_telemetry</span>
-        </div>
-
-        <table className={`w-full text-left text-xs ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>
-          <thead className={`uppercase font-mono text-[10px] border-b ${
-            isLight ? 'bg-slate-50 text-slate-600 border-slate-200' : 'bg-slate-950/80 text-slate-400 border-slate-800'
-          }`}>
-            <tr>
-              <th className="py-2.5 px-3">Trip ID</th>
-              <th className="py-2.5 px-3">Vehicle / Driver</th>
-              <th className="py-2.5 px-3">Cargo Spec</th>
-              <th className="py-2.5 px-3">Origin ➔ Destination</th>
-              <th className="py-2.5 px-3">Speed / Battery</th>
-              <th className="py-2.5 px-3">Status</th>
-              <th className="py-2.5 px-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className={`divide-y font-sans ${isLight ? 'divide-slate-100' : 'divide-slate-800/60'}`}>
-            {trips.map(trip => (
-              <tr key={trip.id} className={`transition-colors ${isLight ? 'hover:bg-slate-50' : 'hover:bg-slate-800/40'}`}>
-                <td className="py-3 px-3 font-mono font-bold text-amber-600">{trip.id}</td>
-                <td className="py-3 px-3">
-                  <div className={`font-mono font-bold ${isLight ? 'text-slate-900' : 'text-white'}`}>{trip.vehiclePlate}</div>
-                  <div className="text-slate-500 text-[11px]">{trip.driverName}</div>
-                </td>
-                <td className="py-3 px-3">
-                  <div className={`font-semibold ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{trip.cargoDescription}</div>
-                  <div className="text-slate-400 text-[10px] font-mono">{trip.cargoWeightTon}T • {trip.cargoDimensions}</div>
-                </td>
-                <td className="py-3 px-3 max-w-[240px]">
-                  <div className={`truncate font-medium ${isLight ? 'text-slate-800' : 'text-slate-300'}`}>📍 {trip.originName.split(',')[0]}</div>
-                  <div className="truncate text-slate-500 text-[11px]">🏁 {trip.destinationName.split(',')[0]}</div>
-                </td>
-                <td className="py-3 px-3 font-mono">
-                  <div className="text-blue-600 font-bold">{trip.speedKmh} km/h</div>
-                  <div className="text-slate-500 text-[10px] flex items-center gap-1">
-                    <BatteryCharging className="w-3 h-3 text-emerald-600" />
-                    {trip.batteryPct}%
-                  </div>
-                </td>
-                <td className="py-3 px-3">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                    trip.status === 'IN_TRANSIT' ? 'bg-blue-500/15 text-blue-700 border border-blue-500/30' :
-                    trip.status === 'ASSIGNED' ? 'bg-amber-500/15 text-amber-700 border border-amber-500/30' :
-                    trip.status === 'DELIVERED' ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' :
-                    'bg-slate-200 text-slate-600'
-                  }`}>
-                    {trip.status}
-                  </span>
-                </td>
-                <td className="py-3 px-3 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {onSelectTripForCustomerView && (
-                      <button
-                        onClick={() => onSelectTripForCustomerView(trip.trackingToken)}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-amber-600 transition-colors"
-                        title="Open Customer Live Tracking"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </button>
-                    )}
-                    {trip.epod?.signedAt && trip.status === 'DELIVERED' && (
-                      <button
-                        onClick={() => setInspectEpodTrip(trip)}
-                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600 hover:text-emerald-700 transition-colors"
-                        title="View Signed ePOD"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ePOD Inspection Modal */}
-      {inspectEpodTrip && (
+      {/* ePOD Inspector Modal */}
+      {inspectEpodTrip && inspectEpodTrip.epod && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-black text-base">VERIFIED ELECTRONIC POD (ePOD)</h3>
+          <div className={`max-w-md w-full rounded-3xl p-6 shadow-2xl border space-y-4 ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-black text-base">Verified Delivery Proof</h3>
+                <span className="text-xs font-mono text-slate-500">REF: {inspectEpodTrip.epod.consignmentNumber}</span>
               </div>
               <button
                 onClick={() => setInspectEpodTrip(null)}
-                className="text-slate-400 hover:text-slate-800 font-bold text-sm px-2.5 py-1 rounded-lg bg-slate-100"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3 text-xs">
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Consignment Number:</span>
-                <span className="font-mono font-bold text-amber-700">{inspectEpodTrip.epod?.consignmentNumber}</span>
+            <div className="space-y-3 text-xs">
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
+                <div className="text-slate-500 font-mono text-[10px]">CONSIGNEE RECEIVER</div>
+                <div className="font-bold text-sm text-slate-900">{inspectEpodTrip.epod.receiverName}</div>
+                <div className="text-slate-600 text-xs">{inspectEpodTrip.epod.receiverRole}</div>
+                <div className="text-slate-500 font-mono text-[11px]">{inspectEpodTrip.epod.receiverPhone}</div>
               </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Delivered Vehicle:</span>
-                <span className="font-mono font-bold text-slate-900">{inspectEpodTrip.vehiclePlate} ({inspectEpodTrip.driverName})</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Cargo Description:</span>
-                <span className="font-semibold text-slate-800">{inspectEpodTrip.cargoDescription}</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Receiver Name & Role:</span>
-                <span className="font-bold text-emerald-700">{inspectEpodTrip.epod?.receiverName} ({inspectEpodTrip.epod?.receiverRole})</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Receiver Contact:</span>
-                <span className="font-mono text-slate-700">{inspectEpodTrip.epod?.receiverPhone}</span>
-              </div>
-              <div className="flex justify-between border-b border-slate-200 pb-2">
-                <span className="text-slate-500">Timestamp:</span>
-                <span className="font-mono text-slate-700">{inspectEpodTrip.epod?.signedAt}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 block mb-1">Site Delivery Notes:</span>
-                <div className="p-2.5 bg-white rounded-xl border border-slate-200 text-slate-700 text-[11px] italic">
-                  &ldquo;{inspectEpodTrip.epod?.deliveryNotes}&rdquo;
+
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div className="text-slate-500 font-mono text-[10px] mb-1">SIGNATURE AUDIT TRAIL</div>
+                <div className="bg-white p-2 rounded-lg border border-slate-300 flex items-center justify-center h-20">
+                  <div className="text-emerald-600 font-mono text-xs font-bold flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span>Cryptographically Signed & Timestamped</span>
+                  </div>
+                </div>
+                <div className="text-[10px] font-mono text-slate-400 mt-1">
+                  Signed At: {inspectEpodTrip.epod.signedAt}
                 </div>
               </div>
-            </div>
 
-            {/* Signature Preview Canvas */}
-            <div className="bg-slate-50 rounded-2xl p-4 flex flex-col items-center justify-center border-2 border-emerald-500/50">
-              <div className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">
-                Cryptographically Timestamped Touch Signature
-              </div>
-              <div 
-                className="w-full h-20 flex items-center justify-center"
-                dangerouslySetInnerHTML={{ __html: inspectEpodTrip.epod?.signatureUrl ? inspectEpodTrip.epod.signatureUrl.replace('data:image/svg+xml;utf8,', '') : '<div class="text-slate-400 italic">Signature Recorded</div>' }}
-              />
-              <div className="text-[9px] text-slate-500 font-mono mt-1">
-                SHA-256 SIGNATURE HASH VERIFIED • SITE GPS: 24.4821, 54.6041
+              <div className="text-[11px] text-slate-500 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-emerald-800">
+                <strong>Notes:</strong> {inspectEpodTrip.epod.deliveryNotes}
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setInspectEpodTrip(null)}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md"
-              >
-                Close Certificate
-              </button>
-            </div>
+            <button
+              onClick={() => setInspectEpodTrip(null)}
+              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+            >
+              Close Inspector
+            </button>
           </div>
         </div>
       )}
 
-      {/* Dispatch New Trip Modal */}
+      {/* Dispatch Modal Simulator */}
       {showDispatchModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-900">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-black text-base">DISPATCH NEW HEAVY FREIGHT TRIP</h3>
+          <div className={`max-w-lg w-full rounded-3xl p-6 shadow-2xl border space-y-4 ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+          }`}>
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h3 className="font-black text-base">Dispatch New Heavy Haulage Trip</h3>
+                <span className="text-xs font-mono text-slate-500">Trip-Gated Privacy Architecture</span>
+              </div>
               <button
                 onClick={() => setShowDispatchModal(false)}
-                className="text-slate-400 hover:text-slate-800 font-bold text-sm px-2.5 py-1 rounded-lg bg-slate-100"
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-sm"
               >
                 ✕
               </button>
@@ -519,75 +545,65 @@ export default function OpsAdminView({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="text-slate-600 font-semibold block mb-1">Assign Available Vehicle & Driver:</label>
-                <select className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium">
-                  <option>DXB-T-88219 (Bilal Hussain - 50ft Flatbed)</option>
-                  <option>AUH-T-33901 (Farooq Ahmed - Telescopic Boom)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-slate-600 font-semibold block mb-1">Cargo Spec & Machinery:</label>
-                <input
-                  type="text"
-                  defaultValue="Komatsu PC200 Excavator"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-slate-600 font-semibold block mb-1">Weight (Tons):</label>
-                  <input
-                    type="number"
-                    defaultValue="21.5"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium"
-                  />
-                </div>
-                <div>
-                  <label className="text-slate-600 font-semibold block mb-1">RTA Permit Number:</label>
-                  <input
-                    type="text"
-                    defaultValue="RTA-HAUL-2026-881"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium"
-                  />
+                <label className="font-mono text-[10px] text-slate-500 font-bold block mb-1">ASSET CLASSIFICATION</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="py-2 rounded-xl bg-amber-500 text-slate-950 font-bold border border-amber-500 text-xs flex items-center justify-center gap-1.5">
+                    <span>🚜 Heavy Equipment</span>
+                  </button>
+                  <button className="py-2 rounded-xl bg-slate-100 text-slate-700 font-bold border border-slate-200 text-xs flex items-center justify-center gap-1.5">
+                    <span>📦 Commercial Freight</span>
+                  </button>
                 </div>
               </div>
 
               <div>
-                <label className="text-slate-600 font-semibold block mb-1">Origin Pickup Yard:</label>
-                <input
-                  type="text"
-                  defaultValue="Kasper Central Yard 12, Al Quoz, Dubai"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium"
+                <label className="font-mono text-[10px] text-slate-500 font-bold block mb-1">CARGO MANIFEST SPECIFICATION</label>
+                <input 
+                  type="text" 
+                  defaultValue="Komatsu PC200-8M0 Hydraulic Excavator (21 Ton)"
+                  className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none"
                 />
               </div>
 
-              <div>
-                <label className="text-slate-600 font-semibold block mb-1">Destination Construction Site:</label>
-                <input
-                  type="text"
-                  defaultValue="Emaar South Golf Links Substation, Dubai"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 font-medium"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-mono text-[10px] text-slate-500 font-bold block mb-1">ORIGIN YARD</label>
+                  <input 
+                    type="text" 
+                    defaultValue="JAFZA Gate 4 Yard, Dubai"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="font-mono text-[10px] text-slate-500 font-bold block mb-1">DESTINATION SITE</label>
+                  <input 
+                    type="text" 
+                    defaultValue="Al Dhafra Solar PV2, Abu Dhabi"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 text-xs font-semibold focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px]">
+                <strong>Driver Privacy Enforcement:</strong> Tracking credentials will activate only upon driver clicking <em>"START TRIP"</em> on their mobile app.
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+            <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setShowDispatchModal(false)}
-                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
+                className="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs"
               >
                 Cancel
               </button>
               <button
                 onClick={() => {
-                  alert('Trip KSP-TR-2045 dispatched to driver device. Tokenized public tracking link generated.');
+                  alert('Trip Dispatched! Push notification delivered to driver smartphone.');
                   setShowDispatchModal(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shadow-md"
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20"
               >
-                Confirm Dispatch
+                Confirm Dispatch ➔
               </button>
             </div>
           </div>
