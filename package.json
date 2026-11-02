@@ -1,9 +1,0 @@
-{
-  "name": "kasper-driver-ecosystem",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Kasper Driver Ecosystem & Fleet Telematics Platform",
-  "scripts": {
-    "build": "cd apps/ops-admin && npm install && npm run build"
-  }
-}
