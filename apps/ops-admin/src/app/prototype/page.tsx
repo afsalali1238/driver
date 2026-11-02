@@ -19,6 +19,28 @@ export default function PrototypeHubPage() {
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationTick, setSimulationTick] = useState(0);
 
+  // Sync initial tab with URL query parameter ?app=driver | admin | customer
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const app = params.get('app');
+      if (app === 'driver') setActiveTab('DRIVER');
+      else if (app === 'admin' || app === 'ops') setActiveTab('OPS');
+      else if (app === 'customer' || app === 'track') setActiveTab('CUSTOMER');
+      else if (app === 'arch' || app === 'specs') setActiveTab('ARCH');
+    }
+  }, []);
+
+  const switchTab = (tab: 'OPS' | 'DRIVER' | 'CUSTOMER' | 'ARCH') => {
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      const slug = tab === 'OPS' ? 'admin' : tab === 'DRIVER' ? 'driver' : tab === 'CUSTOMER' ? 'customer' : 'specs';
+      url.searchParams.set('app', slug);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   const selectedTrip = trips.find(t => t.id === selectedTripId) || trips[0];
 
   // Simulation engine: nudges moving trucks along route and adjusts ETA
@@ -69,7 +91,7 @@ export default function PrototypeHubPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans pb-16">
       {/* Top Founder Showcase Navigation Bar */}
       <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
@@ -82,19 +104,19 @@ export default function PrototypeHubPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-black text-white text-base tracking-wider">KASPER</span>
-                <span className="text-amber-400 font-bold text-xs tracking-widest font-mono">TELEMATICS</span>
+                <span className="text-amber-400 font-bold text-xs tracking-widest font-mono">ECOSYSTEM</span>
                 <span className="bg-amber-500/10 text-amber-400 border border-amber-500/30 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
-                  FOUNDER PROTOTYPE
+                  FOUNDER DEMO
                 </span>
               </div>
-              <div className="text-slate-400 text-[11px]">UAE Heavy Transport & Driver Dispatch Ecosystem</div>
+              <div className="text-slate-400 text-[11px]">UAE Heavy Transport & Driver Telematics Platform</div>
             </div>
           </div>
 
           {/* Master View Switcher Tabs */}
           <nav className="flex items-center bg-slate-950 p-1.5 rounded-xl border border-slate-800 text-xs font-semibold">
             <button
-              onClick={() => setActiveTab('OPS')}
+              onClick={() => switchTab('OPS')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
                 activeTab === 'OPS'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
@@ -102,11 +124,11 @@ export default function PrototypeHubPage() {
               }`}
             >
               <Radio className="w-4 h-4" />
-              <span>Ops Admin Portal</span>
+              <span>Admin Dashboard</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('DRIVER')}
+              onClick={() => switchTab('DRIVER')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
                 activeTab === 'DRIVER'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
@@ -118,7 +140,7 @@ export default function PrototypeHubPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('CUSTOMER')}
+              onClick={() => switchTab('CUSTOMER')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
                 activeTab === 'CUSTOMER'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
@@ -130,7 +152,7 @@ export default function PrototypeHubPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('ARCH')}
+              onClick={() => switchTab('ARCH')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all ${
                 activeTab === 'ARCH'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-md shadow-amber-500/20'
@@ -144,7 +166,7 @@ export default function PrototypeHubPage() {
 
           {/* Quick Active Scenario Switcher */}
           <div className="flex items-center gap-2">
-            <label className="text-[11px] font-mono text-slate-400 hidden xl:inline">TRIP SCENARIO:</label>
+            <label className="text-[11px] font-mono text-slate-400 hidden xl:inline">SCENARIO:</label>
             <select
               value={selectedTripId}
               onChange={(e) => setSelectedTripId(e.target.value)}
@@ -160,19 +182,90 @@ export default function PrototypeHubPage() {
         </div>
       </header>
 
-      {/* Founder Pitch Helper Banner */}
-      <div className="bg-slate-950/60 border-b border-slate-800/80 px-4 py-2 text-xs">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-slate-400">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-slate-300 font-medium">Founder Demo Mode:</span>
-            <span>Click <strong>&quot;Start Live Telemetry&quot;</strong> to watch vehicles move along Dubai-Abu Dhabi highways in real time. Switch between Ops, Driver Mobile, and Customer views seamlessly.</span>
-          </div>
+      {/* Prominent One-Click Switcher Banner */}
+      <div className="bg-slate-950 border-b border-slate-800/80 px-4 py-3">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Option 1: Admin Dashboard */}
+            <button
+              onClick={() => switchTab('OPS')}
+              className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                activeTab === 'OPS'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-slate-900 border-amber-500/60 shadow-lg shadow-amber-500/10'
+                  : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                activeTab === 'OPS' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+              }`}>
+                <Radio className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-white text-sm">🖥️ Admin Dashboard</span>
+                  {activeTab === 'OPS' && (
+                    <span className="bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-xs truncate">Live fleet map, telematics gauges & dispatch board</p>
+              </div>
+            </button>
 
-          <div className="flex items-center gap-3 font-mono text-[11px]">
-            <span className="text-emerald-400 font-bold">● Vercel-Ready Prototype</span>
-            <span className="text-slate-600">|</span>
-            <a href="/dashboard" className="text-amber-400 hover:underline">Switch to Real Telemetry Portal →</a>
+            {/* Option 2: Drivers App */}
+            <button
+              onClick={() => switchTab('DRIVER')}
+              className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                activeTab === 'DRIVER'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-slate-900 border-amber-500/60 shadow-lg shadow-amber-500/10'
+                  : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                activeTab === 'DRIVER' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+              }`}>
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-white text-sm">🚚 Drivers App</span>
+                  {activeTab === 'DRIVER' && (
+                    <span className="bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-xs truncate">Touch signature ePOD, inspection checklist, EN/AR/UR</p>
+              </div>
+            </button>
+
+            {/* Option 3: Customer Live Tracking */}
+            <button
+              onClick={() => switchTab('CUSTOMER')}
+              className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                activeTab === 'CUSTOMER'
+                  ? 'bg-gradient-to-r from-amber-500/20 to-slate-900 border-amber-500/60 shadow-lg shadow-amber-500/10'
+                  : 'bg-slate-900/60 border-slate-800 hover:bg-slate-800/60'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                activeTab === 'CUSTOMER' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-300'
+              }`}>
+                <Search className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-white text-sm">🔍 Customer Tracking</span>
+                  {activeTab === 'CUSTOMER' && (
+                    <span className="bg-amber-500 text-slate-950 text-[9px] font-extrabold px-1.5 py-0.5 rounded">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-slate-400 text-xs truncate">Tokenized client tracking link with real-time ETA</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -185,11 +278,11 @@ export default function PrototypeHubPage() {
             onSelectTripForCustomerView={(token) => {
               const matched = trips.find(t => t.trackingToken === token);
               if (matched) setSelectedTripId(matched.id);
-              setActiveTab('CUSTOMER');
+              switchTab('CUSTOMER');
             }}
             onSelectTripForDriverView={(tripId) => {
               setSelectedTripId(tripId);
-              setActiveTab('DRIVER');
+              switchTab('DRIVER');
             }}
             isSimulating={isSimulating}
             onToggleSimulation={() => setIsSimulating(!isSimulating)}
@@ -200,9 +293,12 @@ export default function PrototypeHubPage() {
         {activeTab === 'DRIVER' && (
           <div className="space-y-4">
             <div className="text-center max-w-lg mx-auto">
-              <h2 className="text-lg font-black text-white">Driver Mobile Application Simulator</h2>
+              <h2 className="text-lg font-black text-white flex items-center justify-center gap-2">
+                <Smartphone className="w-5 h-5 text-amber-400" />
+                Driver Mobile Application Simulator
+              </h2>
               <p className="text-slate-400 text-xs mt-1">
-                Field-tested for heavy haulage drivers. Test the interactive touch signature canvas, inspection checklist, language toggles, and offline SQLite buffering.
+                Optimized for heavy freight field drivers. Try drawing on the touch signature pad, completing the pre-trip audit, switching languages, and toggling offline mode!
               </p>
             </div>
             <DriverMobileView
@@ -215,7 +311,7 @@ export default function PrototypeHubPage() {
         {activeTab === 'CUSTOMER' && (
           <CustomerTrackingView
             trip={selectedTrip}
-            onOpenDriverSimulator={() => setActiveTab('DRIVER')}
+            onOpenDriverSimulator={() => switchTab('DRIVER')}
           />
         )}
 
@@ -224,12 +320,45 @@ export default function PrototypeHubPage() {
         )}
       </main>
 
+      {/* Floating Bottom Quick-Switcher Pill (Always Visible on Mobile and Desktop) */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 backdrop-blur-lg border border-slate-700/80 p-1.5 rounded-full shadow-2xl flex items-center gap-1 text-xs font-bold">
+        <button
+          onClick={() => switchTab('OPS')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+            activeTab === 'OPS' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5" />
+          <span>Admin Portal</span>
+        </button>
+
+        <button
+          onClick={() => switchTab('DRIVER')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+            activeTab === 'DRIVER' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <Smartphone className="w-3.5 h-3.5" />
+          <span>Driver App</span>
+        </button>
+
+        <button
+          onClick={() => switchTab('CUSTOMER')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+            activeTab === 'CUSTOMER' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          <Search className="w-3.5 h-3.5" />
+          <span>Customer Link</span>
+        </button>
+      </div>
+
       {/* Footer */}
       <footer className="bg-slate-950 border-t border-slate-800 py-4 px-6 text-center text-xs text-slate-500 font-mono">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <span>Kasper Driver & Fleet Telematics Platform © 2026</span>
-          <span>Designed for UAE Construction Logistics & Heavy Haulage</span>
-          <span className="text-amber-400 font-bold">Vercel & Git Production Ready</span>
+          <span>Access both Driver App and Admin Portal from one unified link</span>
+          <span className="text-amber-400 font-bold">Vercel Production Deployment</span>
         </div>
       </footer>
     </div>
