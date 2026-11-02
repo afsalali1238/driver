@@ -5,16 +5,15 @@ import { DUMMY_TRIPS, TripData, FLEET_METRICS } from '../data/dummyData';
 import OpsAdminView from '../components/OpsAdminView';
 import DriverMobileView from '../components/DriverMobileView';
 import CustomerTrackingView from '../components/CustomerTrackingView';
-import ArchitectureView from '../components/ArchitectureView';
 import { 
   Truck, Radio, Smartphone, Search, ShieldCheck, 
-  Layers, ExternalLink, Play, Pause, RotateCcw, 
+  ExternalLink, Play, Pause, RotateCcw, 
   Sparkles, CheckCircle2, ChevronRight, Info,
   ArrowRight, Globe, Zap, ArrowLeft, LayoutGrid,
   Sun, Moon
 } from '../components/Icons';
 
-type ActiveView = 'LAUNCHPAD' | 'OPS' | 'DRIVER' | 'CUSTOMER' | 'ARCH';
+type ActiveView = 'LAUNCHPAD' | 'OPS' | 'DRIVER' | 'CUSTOMER';
 
 export default function PrototypeHubPage() {
   const [activeTab, setActiveTab] = useState<ActiveView>('LAUNCHPAD');
@@ -34,7 +33,6 @@ export default function PrototypeHubPage() {
       if (app === 'driver') setActiveTab('DRIVER');
       else if (app === 'admin' || app === 'ops') setActiveTab('OPS');
       else if (app === 'customer' || app === 'track') setActiveTab('CUSTOMER');
-      else if (app === 'arch' || app === 'specs') setActiveTab('ARCH');
       else setActiveTab('LAUNCHPAD');
     }
   }, []);
@@ -46,7 +44,7 @@ export default function PrototypeHubPage() {
       if (tab === 'LAUNCHPAD') {
         url.searchParams.delete('app');
       } else {
-        const slug = tab === 'OPS' ? 'admin' : tab === 'DRIVER' ? 'driver' : tab === 'CUSTOMER' ? 'customer' : 'specs';
+        const slug = tab === 'OPS' ? 'admin' : tab === 'DRIVER' ? 'driver' : 'customer';
         url.searchParams.set('app', slug);
       }
       window.history.replaceState({}, '', url.toString());
@@ -145,7 +143,7 @@ export default function PrototypeHubPage() {
           }`}>
             <button
               onClick={() => switchTab('LAUNCHPAD')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
                 activeTab === 'LAUNCHPAD'
                   ? isLight ? 'bg-white text-slate-900 font-bold shadow-sm' : 'bg-slate-800 text-white font-bold'
                   : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
@@ -157,7 +155,7 @@ export default function PrototypeHubPage() {
 
             <button
               onClick={() => switchTab('DRIVER')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
                 activeTab === 'DRIVER'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
                   : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
@@ -169,7 +167,7 @@ export default function PrototypeHubPage() {
 
             <button
               onClick={() => switchTab('OPS')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
                 activeTab === 'OPS'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
                   : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
@@ -181,7 +179,7 @@ export default function PrototypeHubPage() {
 
             <button
               onClick={() => switchTab('CUSTOMER')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
                 activeTab === 'CUSTOMER'
                   ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
                   : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
@@ -189,18 +187,6 @@ export default function PrototypeHubPage() {
             >
               <Search className="w-3.5 h-3.5" />
               <span>Customer Track</span>
-            </button>
-
-            <button
-              onClick={() => switchTab('ARCH')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                activeTab === 'ARCH'
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
-                  : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Specs & ROI</span>
             </button>
           </nav>
 
@@ -280,8 +266,8 @@ export default function PrototypeHubPage() {
               </p>
             </div>
 
-            {/* Application Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {/* 3-Column Balanced Application Cards Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
               
               {/* Card 1: Driver Mobile App */}
               <div 
@@ -299,7 +285,7 @@ export default function PrototypeHubPage() {
                       <Smartphone className="w-7 h-7" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-xs font-mono font-bold">
-                      INTERACTIVE SIMULATOR
+                      MOBILE SIMULATOR
                     </span>
                   </div>
 
@@ -310,33 +296,33 @@ export default function PrototypeHubPage() {
                     <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
                   </h3>
                   <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Smartphone app for heavy transport drivers. Features large touch buttons, camera watermark photo capture, interactive touchscreen signature canvas, Arabic/Urdu/English localization, and offline SQLite buffering.
+                    Smartphone app for heavy transport drivers. Oversized touch buttons, interactive touchscreen signature canvas, Arabic/Urdu/English localization, and offline SQLite buffering.
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 mt-4 text-xs font-mono">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-mono">
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>ePOD Touch Signature</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>ePOD Signature</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>EN / AR / UR Toggle</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>EN / AR / UR</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>SQLite Offline Buffer</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>SQLite Offline</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Trip-Gated GPS Privacy</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Trip-Gated GPS</span>
                     </div>
                   </div>
                 </div>
@@ -344,7 +330,7 @@ export default function PrototypeHubPage() {
                 <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
-                  <span className="text-xs text-amber-600 font-bold">Try iPhone simulator & signature canvas</span>
+                  <span className="text-xs text-amber-600 font-bold">Interactive iPhone simulator</span>
                   <button className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20">
                     Launch Driver App ➔
                   </button>
@@ -381,30 +367,30 @@ export default function PrototypeHubPage() {
                     Mission control for logistics dispatchers. Interactive UAE map tracking heavy equipment across Dubai, Abu Dhabi, and Sharjah with directional heading icons, speed alerts, and digital consignment archive.
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 mt-4 text-xs font-mono">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-mono">
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>UAE Corridor Map (E11)</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>UAE Corridor Map</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Live Speed & Heading</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Speed & Heading</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Verified ePOD Archive</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>ePOD Archive</span>
                     </div>
                     <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
                       isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
                     }`}>
-                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
-                      <span>One-Click Dispatch</span>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Live Dispatch</span>
                     </div>
                   </div>
                 </div>
@@ -412,7 +398,7 @@ export default function PrototypeHubPage() {
                 <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
-                  <span className="text-xs text-blue-600 font-bold">Interactive fleet telemetry & live dispatch</span>
+                  <span className="text-xs text-blue-600 font-bold">Fleet dispatch control center</span>
                   <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20">
                     Launch Admin Portal ➔
                   </button>
@@ -428,77 +414,61 @@ export default function PrototypeHubPage() {
                     : 'bg-slate-900/90 border-slate-800 hover:border-amber-500/60 shadow-2xl hover:shadow-amber-500/10'
                 }`}
               >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full pointer-events-none group-hover:bg-emerald-500/10 transition-colors"></div>
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                       <Search className="w-7 h-7" />
                     </div>
                     <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 text-xs font-mono font-bold">
-                      TOKENIZED PUBLIC LINK
+                      TOKENIZED CLIENT LINK
                     </span>
                   </div>
 
                   <h3 className={`text-2xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
                     isLight ? 'text-slate-900' : 'text-white'
                   }`}>
-                    Customer Tracking Surface
+                    Customer Live Tracking
                     <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
                   </h3>
                   <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Zero-login tracking page sent to EPC contractors, site engineers, and project managers. Live vehicle map, dynamic ETA countdown, and driver privacy shielding.
+                    Zero-login shipment tracking portal for EPC contractors, site engineers, and project managers. Live vehicle map, dynamic ETA countdown, and driver privacy protection.
                   </p>
-                </div>
 
-                <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
-                  isLight ? 'border-slate-100' : 'border-slate-800'
-                }`}>
-                  <span className="text-xs text-emerald-600 font-bold">Client-facing live delivery experience</span>
-                  <button className={`px-4 py-2 rounded-xl font-bold text-xs ${
-                    isLight ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'
-                  }`}>
-                    View Tracking Link ➔
-                  </button>
-                </div>
-              </div>
-
-              {/* Card 4: Architecture & ROI */}
-              <div 
-                onClick={() => switchTab('ARCH')}
-                className={`group relative rounded-3xl p-6 transition-all cursor-pointer flex flex-col justify-between overflow-hidden border ${
-                  isLight
-                    ? 'bg-white border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-xl'
-                    : 'bg-slate-900/90 border-slate-800 hover:border-amber-500/60 shadow-2xl hover:shadow-amber-500/10'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-14 h-14 rounded-2xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
-                      <Layers className="w-7 h-7" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-mono">
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Tokenized Link</span>
                     </div>
-                    <span className="px-3 py-1 rounded-full bg-purple-500/15 text-purple-700 border border-purple-500/30 text-xs font-mono font-bold">
-                      ARCHITECTURE & ROI
-                    </span>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Dynamic ETA</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Privacy Shield</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Live Site Status</span>
+                    </div>
                   </div>
-
-                  <h3 className={`text-2xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
-                    isLight ? 'text-slate-900' : 'text-white'
-                  }`}>
-                    System Specs & Founder ROI
-                    <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
-                  </h3>
-                  <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Executive breakdown of the dual-process Android foreground service, offline FIFO database buffering, backend Node/Postgres stack, and hardware cost savings.
-                  </p>
                 </div>
 
                 <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
-                  <span className="text-xs text-purple-600 font-bold">Technical topology & business model</span>
-                  <button className={`px-4 py-2 rounded-xl font-bold text-xs ${
-                    isLight ? 'bg-slate-900 hover:bg-slate-800 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'
-                  }`}>
-                    Read Architecture ➔
+                  <span className="text-xs text-emerald-600 font-bold">Consignee live tracking portal</span>
+                  <button className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20">
+                    Launch Customer Track ➔
                   </button>
                 </div>
               </div>
@@ -529,7 +499,7 @@ export default function PrototypeHubPage() {
                 Viewing:
               </span>
               <span className="font-bold text-amber-600 font-mono">
-                {activeTab === 'OPS' ? '🖥️ Admin Dashboard' : activeTab === 'DRIVER' ? '🚚 Driver Mobile App' : activeTab === 'CUSTOMER' ? '🔍 Customer Tracking' : '🏗️ Architecture Specs'}
+                {activeTab === 'OPS' ? '🖥️ Admin Dashboard' : activeTab === 'DRIVER' ? '🚚 Driver Mobile App' : '🔍 Customer Tracking'}
               </span>
             </div>
           </div>
@@ -591,13 +561,6 @@ export default function PrototypeHubPage() {
             theme={theme}
           />
         )}
-
-        {/* ======================================================== */}
-        {/* VIEW 4: ARCHITECTURE & ROI */}
-        {/* ======================================================== */}
-        {activeTab === 'ARCH' && (
-          <ArchitectureView theme={theme} />
-        )}
       </main>
 
       {/* Floating Bottom Quick-Switcher Pill (Always Visible on Screen) */}
@@ -651,7 +614,7 @@ export default function PrototypeHubPage() {
           }`}
         >
           <Search className="w-3.5 h-3.5" />
-          <span>Customer Link</span>
+          <span>Customer Track</span>
         </button>
       </div>
 
@@ -661,7 +624,7 @@ export default function PrototypeHubPage() {
       }`}>
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
           <span>Kasper Driver & Fleet Telematics Platform © 2026</span>
-          <span>Access both Driver App and Admin Portal from one unified link</span>
+          <span>Unified Access for Driver Simulator, Admin Portal & Customer Tracking</span>
           <span className="text-amber-600 font-bold">Vercel Production Deployment</span>
         </div>
       </footer>
