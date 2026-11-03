@@ -169,7 +169,7 @@ export default function DriverMobileView({
       drop: 'DELIVERY SITE',
       startPickup: 'START TO PICKUP',
       arrivedPickup: 'ARRIVED AT PICKUP',
-      startTransit: 'START TRANSIT TO SITE',
+      startTransit: 'ACCEPT TRIP & START LIVE GPS',
       arrivedSite: 'ARRIVED AT SITE',
       completeEpod: 'PHOTO ePOD & DELIVER',
       inspection: 'PRE-TRIP CHECK',
@@ -179,7 +179,7 @@ export default function DriverMobileView({
       signHere: 'OPTIONAL TOUCH SIGNATURE',
       clear: 'CLEAR',
       submitPOD: 'SUBMIT STAMPED ePOD & DELIVER',
-      tripGatedNotice: 'Privacy Active: GPS only streamed while trip is in progress',
+      tripGatedNotice: 'Trip-Gated Privacy: GPS streams only while trip is active',
       offlineActive: 'OFFLINE MODE: Buffered in SQLite',
       onlineActive: 'ONLINE: Connected to Kasper Ingestion API',
       docPhotoTitle: '1. Stamped Delivery Note (Paper DO)',
@@ -197,7 +197,7 @@ export default function DriverMobileView({
       drop: 'موقع التسليم في المشروع',
       startPickup: 'بدء التحرك للاستلام',
       arrivedPickup: 'تم الوصول لموقع الاستلام',
-      startTransit: 'بدء التحرك لموقع المشروع',
+      startTransit: 'قبول الرحلة وبدء بث الموقع (GPS)',
       arrivedSite: 'تم الوصول للمشروع',
       completeEpod: 'تصوير سند التسليم المختوم (ePOD)',
       inspection: 'الفحص الميداني',
@@ -207,7 +207,7 @@ export default function DriverMobileView({
       signHere: 'توقيع إلكتروني اختياري باللمس',
       clear: 'مسح التوقيع',
       submitPOD: 'اعتماد سند التسليم المختوم والإنهاء',
-      tripGatedNotice: 'الخصوصية مفعلة: يتم تتبع الموقع فقط خلال سير الرحلة',
+      tripGatedNotice: 'خصوصية السائق: يتم بث الموقع فقط أثناء سير الرحلة الفعلية',
       offlineActive: 'وضع عدم الاتصال: يتم الحفظ محلياً في SQLite',
       onlineActive: 'متصل: جاهز لإرسال البيانات',
       docPhotoTitle: '١. سند التسليم المختوم والموقع (DO)',
@@ -225,7 +225,7 @@ export default function DriverMobileView({
       drop: 'ڈلیوری سائیٹ',
       startPickup: 'پک اپ کے لیے روانہ ہوں',
       arrivedPickup: 'پک اپ پر پہنچ گئے',
-      startTransit: 'سائیٹ کے لیے روانہ ہوں',
+      startTransit: 'ٹرپ قبول کریں اور لائیو GPS شروع کریں',
       arrivedSite: 'سائیٹ پر پہنچ گئے',
       completeEpod: 'تصویری رسید اور ڈلیوری (ePOD)',
       inspection: 'گاڑی کا معائنہ',
@@ -235,7 +235,7 @@ export default function DriverMobileView({
       signHere: 'اختیاری سائن',
       clear: 'دوبارہ سائن کریں',
       submitPOD: 'مہر شدہ رسید جمع کرائیں',
-      tripGatedNotice: 'پرائیویسی فعال: لوکیشن صرف فعال سفر کے دوران ریکارڈ ہوگی',
+      tripGatedNotice: 'ڈرائیور پرائیویسی: لوکیشن صرف فعال سفر کے دوران ریکارڈ ہوتی ہے',
       offlineActive: 'آف لائن موڈ: لوکل اسٹوریج میں محفوظ ہو رہا ہے',
       onlineActive: 'آن لائن: سسٹم سے منسلک ہے',
       docPhotoTitle: '1. مہر لگی رسید کی تصویر (DO)',
@@ -471,10 +471,30 @@ export default function DriverMobileView({
 
               <div className="text-right">
                 <div className="text-slate-500 text-[9px] uppercase font-bold">{(safeTrip?.driverName || 'Rashid').split(' ')[0]}</div>
-                <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  ACTIVE GPS
-                </div>
+                {tripState === 'IN_TRANSIT' && (
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    LIVE GPS ACTIVE
+                  </div>
+                )}
+                {tripState === 'ASSIGNED' && (
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-amber-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    GPS STANDBY
+                  </div>
+                )}
+                {tripState === 'ARRIVED_DESTINATION' && (
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-blue-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    ON SITE
+                  </div>
+                )}
+                {tripState === 'DELIVERED' && (
+                  <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400">
+                    <ShieldCheck className="w-2.5 h-2.5 text-blue-500" />
+                    GPS OFF
+                  </div>
+                )}
               </div>
             </div>
 
@@ -588,13 +608,18 @@ export default function DriverMobileView({
                   {/* High-Impact Primary Action Button */}
                   <div className="pt-1">
                     {tripState === 'ASSIGNED' && (
-                      <button
-                        onClick={() => updateStage('IN_TRANSIT')}
-                        className="w-full h-11 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-transform"
-                      >
-                        <Navigation className="w-4 h-4" />
-                        {t.startTransit}
-                      </button>
+                      <div className="space-y-1.5">
+                        <button
+                          onClick={() => updateStage('IN_TRANSIT')}
+                          className="w-full h-11 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-transform"
+                        >
+                          <Navigation className="w-4 h-4" />
+                          {t.startTransit}
+                        </button>
+                        <p className="text-[9px] text-center font-mono text-slate-500 dark:text-slate-400">
+                          🔒 Driver consent required: Live GPS broadcasts only after acceptance
+                        </p>
+                      </div>
                     )}
 
                     {tripState === 'IN_TRANSIT' && (
