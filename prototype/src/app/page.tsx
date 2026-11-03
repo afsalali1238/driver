@@ -5,15 +5,16 @@ import { DUMMY_TRIPS, TripData, FLEET_METRICS } from '../data/dummyData';
 import OpsAdminView from '../components/OpsAdminView';
 import DriverMobileView from '../components/DriverMobileView';
 import CustomerTrackingView from '../components/CustomerTrackingView';
+import FleetOwnerPortalView from '../components/FleetOwnerPortalView';
 import { 
   Truck, Radio, Smartphone, Search, ShieldCheck, 
   ExternalLink, Play, Pause, RotateCcw, 
   Sparkles, CheckCircle2, ChevronRight, Info,
   ArrowRight, Globe, Zap, ArrowLeft, LayoutGrid,
-  Sun, Moon
+  Sun, Moon, Building2, Users
 } from '../components/Icons';
 
-type ActiveView = 'LAUNCHPAD' | 'OPS' | 'DRIVER' | 'CUSTOMER';
+type ActiveView = 'LAUNCHPAD' | 'OPS' | 'DRIVER' | 'CUSTOMER' | 'FLEET_OWNER';
 
 export default function PrototypeHubPage() {
   const [activeTab, setActiveTab] = useState<ActiveView>('LAUNCHPAD');
@@ -25,7 +26,7 @@ export default function PrototypeHubPage() {
 
   const isLight = theme === 'light';
 
-  // Sync initial tab with URL query parameter ?app=driver | admin | customer | launchpad
+  // Sync initial tab with URL query parameter ?app=driver | admin | customer | fleet | launchpad
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -33,6 +34,7 @@ export default function PrototypeHubPage() {
       if (app === 'driver') setActiveTab('DRIVER');
       else if (app === 'admin' || app === 'ops') setActiveTab('OPS');
       else if (app === 'customer' || app === 'track') setActiveTab('CUSTOMER');
+      else if (app === 'fleet' || app === 'owner' || app === 'carrier') setActiveTab('FLEET_OWNER');
       else setActiveTab('LAUNCHPAD');
     }
   }, []);
@@ -44,7 +46,7 @@ export default function PrototypeHubPage() {
       if (tab === 'LAUNCHPAD') {
         url.searchParams.delete('app');
       } else {
-        const slug = tab === 'OPS' ? 'admin' : tab === 'DRIVER' ? 'driver' : 'customer';
+        const slug = tab === 'OPS' ? 'admin' : tab === 'DRIVER' ? 'driver' : tab === 'FLEET_OWNER' ? 'fleet' : 'customer';
         url.searchParams.set('app', slug);
       }
       window.history.replaceState({}, '', url.toString());
@@ -178,6 +180,18 @@ export default function PrototypeHubPage() {
             </button>
 
             <button
+              onClick={() => switchTab('FLEET_OWNER')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
+                activeTab === 'FLEET_OWNER'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm shadow-amber-500/20'
+                  : isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Fleet Owner</span>
+            </button>
+
+            <button
               onClick={() => switchTab('CUSTOMER')}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg transition-all ${
                 activeTab === 'CUSTOMER'
@@ -266,8 +280,8 @@ export default function PrototypeHubPage() {
               </p>
             </div>
 
-            {/* 3-Column Balanced Application Cards Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+            {/* 4 Balanced Application Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-7xl mx-auto">
               
               {/* Card 1: Driver Mobile App */}
               <div 
@@ -289,14 +303,14 @@ export default function PrototypeHubPage() {
                     </span>
                   </div>
 
-                  <h3 className={`text-2xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
+                  <h3 className={`text-xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
                     isLight ? 'text-slate-900' : 'text-white'
                   }`}>
                     Driver Mobile App
-                    <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
                   </h3>
                   <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
-                    Smartphone app for heavy transport drivers. Oversized touch buttons, interactive touchscreen signature canvas, Arabic/Urdu/English localization, and offline SQLite buffering.
+                    Smartphone app for heavy transport drivers. Oversized touch buttons, touchscreen signature canvas, Arabic/Urdu/English, and offline SQLite buffering.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-mono">
@@ -331,13 +345,81 @@ export default function PrototypeHubPage() {
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
                   <span className="text-xs text-amber-600 font-bold">Interactive iPhone simulator</span>
-                  <button className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20">
+                  <button className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20">
                     Launch Driver App ➔
                   </button>
                 </div>
               </div>
 
-              {/* Card 2: Ops Admin Dashboard */}
+              {/* Card 2: Fleet Owner / Carrier Portal */}
+              <div 
+                onClick={() => switchTab('FLEET_OWNER')}
+                className={`group relative rounded-3xl p-6 transition-all cursor-pointer flex flex-col justify-between overflow-hidden border ${
+                  isLight
+                    ? 'bg-white border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-xl'
+                    : 'bg-slate-900/90 border-slate-800 hover:border-amber-500/60 shadow-2xl hover:shadow-amber-500/10'
+                }`}
+              >
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-bl-full pointer-events-none group-hover:bg-amber-500/10 transition-colors"></div>
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                      <Building2 className="w-7 h-7" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30 text-xs font-mono font-bold">
+                      CARRIER PORTAL
+                    </span>
+                  </div>
+
+                  <h3 className={`text-xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
+                    isLight ? 'text-slate-900' : 'text-white'
+                  }`}>
+                    Fleet Owner Portal
+                    <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                  </h3>
+                  <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
+                    Multi-rig fleet management for transport companies. Delegate marketplace POs to employed drivers, match corridor backhauls, and auto-refund toll gantries.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 text-xs font-mono">
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>PO Delegation</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Backhaul Match</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Fleet Roster</span>
+                    </div>
+                    <div className={`flex items-center gap-1.5 p-2 rounded-lg border ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-slate-950/60 border-slate-800 text-slate-300'
+                    }`}>
+                      <CheckCircle2 className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Tolls & Payouts</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`mt-6 pt-4 border-t flex items-center justify-between ${
+                  isLight ? 'border-slate-100' : 'border-slate-800'
+                }`}>
+                  <span className="text-xs text-amber-600 font-bold">Transporter carrier hub</span>
+                  <button className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20">
+                    Launch Fleet Owner ➔
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 3: Ops Admin Dashboard */}
               <div 
                 onClick={() => switchTab('OPS')}
                 className={`group relative rounded-3xl p-6 transition-all cursor-pointer flex flex-col justify-between overflow-hidden border ${
@@ -357,11 +439,11 @@ export default function PrototypeHubPage() {
                     </span>
                   </div>
 
-                  <h3 className={`text-2xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
+                  <h3 className={`text-xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
                     isLight ? 'text-slate-900' : 'text-white'
                   }`}>
                     Ops Admin Dashboard
-                    <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
                   </h3>
                   <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                     Mission control for logistics dispatchers. Interactive UAE map tracking heavy equipment across Dubai, Abu Dhabi, and Sharjah with directional heading icons, speed alerts, and digital consignment archive.
@@ -399,13 +481,13 @@ export default function PrototypeHubPage() {
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
                   <span className="text-xs text-blue-600 font-bold">Fleet dispatch control center</span>
-                  <button className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20">
+                  <button className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-500/20">
                     Launch Admin Portal ➔
                   </button>
                 </div>
               </div>
 
-              {/* Card 3: Customer Live Tracking */}
+              {/* Card 4: Customer Live Tracking */}
               <div 
                 onClick={() => switchTab('CUSTOMER')}
                 className={`group relative rounded-3xl p-6 transition-all cursor-pointer flex flex-col justify-between overflow-hidden border ${
@@ -425,11 +507,11 @@ export default function PrototypeHubPage() {
                     </span>
                   </div>
 
-                  <h3 className={`text-2xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
+                  <h3 className={`text-xl font-black group-hover:text-amber-600 transition-colors flex items-center gap-2 ${
                     isLight ? 'text-slate-900' : 'text-white'
                   }`}>
                     Customer Live Tracking
-                    <ArrowRight className="w-5 h-5 text-amber-500 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform" />
                   </h3>
                   <p className={`text-xs mt-2 leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-400'}`}>
                     Zero-login shipment tracking portal for EPC contractors, site engineers, and project managers. Live vehicle map, dynamic ETA countdown, and driver privacy protection.
@@ -467,7 +549,7 @@ export default function PrototypeHubPage() {
                   isLight ? 'border-slate-100' : 'border-slate-800'
                 }`}>
                   <span className="text-xs text-emerald-600 font-bold">Consignee live tracking portal</span>
-                  <button className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20">
+                  <button className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20">
                     Launch Customer Track ➔
                   </button>
                 </div>
@@ -499,7 +581,13 @@ export default function PrototypeHubPage() {
                 Viewing:
               </span>
               <span className="font-bold text-amber-600 font-mono">
-                {activeTab === 'OPS' ? '🖥️ Admin Dashboard' : activeTab === 'DRIVER' ? '🚚 Driver Mobile App' : '🔍 Customer Tracking'}
+                {activeTab === 'OPS' 
+                  ? '🖥️ Admin Dashboard' 
+                  : activeTab === 'DRIVER' 
+                  ? '🚚 Driver Mobile App' 
+                  : activeTab === 'FLEET_OWNER'
+                  ? '🏢 Fleet Owner Portal'
+                  : '🔍 Customer Tracking'}
               </span>
             </div>
           </div>
@@ -520,6 +608,10 @@ export default function PrototypeHubPage() {
               setSelectedTripId(tripId);
               switchTab('DRIVER');
             }}
+            onAddTrip={(newTrip) => {
+              setTrips(prev => [newTrip, ...prev]);
+              setSelectedTripId(newTrip.id);
+            }}
             isSimulating={isSimulating}
             onToggleSimulation={() => setIsSimulating(!isSimulating)}
             onResetSimulation={handleReset}
@@ -536,6 +628,11 @@ export default function PrototypeHubPage() {
             onTripStatusChange={handleTripStatusChange}
             theme={theme}
             onBackToLaunchpad={() => switchTab('LAUNCHPAD')}
+            onOpenCustomerView={(token) => {
+              const matched = trips.find(t => t.trackingToken === token);
+              if (matched) setSelectedTripId(matched.id);
+              switchTab('CUSTOMER');
+            }}
           />
         )}
 
@@ -547,6 +644,19 @@ export default function PrototypeHubPage() {
             trip={selectedTrip}
             onOpenDriverSimulator={() => switchTab('DRIVER')}
             theme={theme}
+          />
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 4: FLEET OWNER / CARRIER PORTAL */}
+        {/* ======================================================== */}
+        {activeTab === 'FLEET_OWNER' && (
+          <FleetOwnerPortalView
+            theme={theme}
+            onNavigateToTrip={(tripId) => {
+              setSelectedTripId(tripId);
+              switchTab('OPS');
+            }}
           />
         )}
       </main>
@@ -579,6 +689,18 @@ export default function PrototypeHubPage() {
         >
           <Smartphone className="w-3.5 h-3.5" />
           <span>Driver App</span>
+        </button>
+
+        <button
+          onClick={() => switchTab('FLEET_OWNER')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all ${
+            activeTab === 'FLEET_OWNER' 
+              ? 'bg-amber-500 text-slate-950 shadow-md' 
+              : (isLight ? 'text-slate-600 hover:text-slate-900' : 'text-slate-400 hover:text-white')
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Fleet Owner</span>
         </button>
 
         <button

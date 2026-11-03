@@ -1,23 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { TripData } from '../data/dummyData';
-import { Navigation, MapPin, Truck, AlertCircle, Layers } from './Icons';
-
-// Dynamically import Leaflet map with SSR disabled
-const LeafletFleetMap = dynamic(
-  () => import('./LeafletFleetMap'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-900 text-slate-500 font-mono text-xs gap-2">
-        <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-        <span>Loading Real Geographic UAE Map...</span>
-      </div>
-    )
-  }
-);
+import { Navigation, MapPin, Truck, AlertCircle, Layers, CheckCircle2 } from './Icons';
 
 interface InteractiveMapProps {
   trips: TripData[];
@@ -29,15 +14,37 @@ interface InteractiveMapProps {
   onCategoryChange?: (category: 'ALL' | 'EQUIPMENT' | 'FREIGHT') => void;
 }
 
-// UAE geographic bounding box for SVG projection (for Radar mode)
-function projectCoords(lat: number, lng: number, width: number, height: number): [number, number] {
-  const minLat = 23.8;
-  const maxLat = 26.0;
-  const minLng = 52.5;
-  const maxLng = 56.5;
+// UAE geographic bounding box for SVG projection
+// Lat: 23.5 to 26.2 (North)
+// Lng: 52.0 to 56.6 (East)
+function projectCoords(
+  lat: number, 
+  lng: number, 
+  width: number, 
+  height: number,
+  zoom: number,
+  panX: number,
+  panY: number
+): [number, number] {
+  const minLat = 23.5;
+  const maxLat = 26.2;
+  const minLng = 52.0;
+  const maxLng = 56.6;
 
-  const x = ((lng - minLng) / (maxLng - minLng)) * width;
-  const y = height - ((lat - minLat) / (maxLat - minLat)) * height;
+  // Base normalized coordinates
+  const normX = (lng - minLng) / (maxLng - minLng);
+  const normY = 1 - (lat - minLat) / (maxLat - minLat); // Invert for SVG
+
+  // Apply zoom and pan offset around center (0.5, 0.5)
+  const centerX = width / 2;
+  const centerY = height / 2;
+
+  const rawX = normX * width;
+  const rawY = normY * height;
+
+  const x = centerX + (rawX - centerX) * zoom + panX;
+  const y = centerY + (rawY - centerY) * zoom + panY;
+
   return [x, y];
 }
 
@@ -52,7 +59,9 @@ export default function InteractiveMap({
 }: InteractiveMapProps) {
   const isLight = theme === 'light';
   const [internalCategory, setInternalCategory] = useState<'ALL' | 'EQUIPMENT' | 'FREIGHT'>('ALL');
-  const [mapMode, setMapMode] = useState<'REAL' | 'SATELLITE' | 'RADAR'>('REAL');
+  const [mapStyle, setMapStyle] = useState<'STREET' | 'SATELLITE' | 'RADAR'>('STREET');
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const activeCategory = onCategoryChange ? categoryFilter : internalCategory;
   const handleCategorySelect = (cat: 'ALL' | 'EQUIPMENT' | 'FREIGHT') => {
@@ -67,32 +76,45 @@ export default function InteractiveMap({
     return true;
   });
 
-  const selectedTrip = trips.find(t => t.id === selectedTripId);
+  const selectedTrip = trips.find(t => t.id === selectedTripId) || displayedTrips[0];
 
-  // SVG Radar Constants
-  const mapWidth = 900;
-  const mapHeight = 520;
+  // SVG Map Canvas Base Dimensions
+  const mapWidth = 960;
+  const mapHeight = 540;
 
+  // Key UAE Landmarks & Industrial Ports
   const landmarks = [
-    { name: 'Abu Dhabi', coords: [24.4539, 54.3773] as [number, number] },
-    { name: 'Dubai', coords: [25.2048, 55.2708] as [number, number] },
-    { name: 'Sharjah', coords: [25.3463, 55.4209] as [number, number] },
-    { name: 'Jebel Ali Port', coords: [25.0050, 55.0600] as [number, number] },
-    { name: 'Al Ain', coords: [24.2075, 55.7447] as [number, number] },
-    { name: 'Ruwais', coords: [24.1102, 52.7305] as [number, number] },
+    { name: 'Abu Dhabi (Capital)', coords: [24.4539, 54.3773], type: 'CITY' },
+    { name: 'Dubai', coords: [25.2048, 55.2708], type: 'CITY' },
+    { name: 'Sharjah', coords: [25.3463, 55.4209], type: 'CITY' },
+    { name: 'Jebel Ali Port (DPW)', coords: [25.0050, 55.0600], type: 'PORT' },
+    { name: 'Khalifa Port & KIZAD', coords: [24.8100, 54.6700], type: 'PORT' },
+    { name: 'Ruwais Refinery (ADNOC)', coords: [24.1102, 52.7305], type: 'INDUSTRIAL' },
+    { name: 'Dubai South (DWC Logistics)', coords: [24.8934, 55.1582], type: 'INDUSTRIAL' },
+    { name: 'Hamriyah Free Zone', coords: [25.4651, 55.4981], type: 'PORT' },
+    { name: 'Mussafah Industrial City', coords: [24.3412, 54.5123], type: 'INDUSTRIAL' },
+    { name: 'Al Ain', coords: [24.2075, 55.7447], type: 'CITY' },
+    { name: 'Ras Al Khaimah', coords: [25.7890, 55.9432], type: 'CITY' },
   ];
 
+  const handleZoomIn = () => setZoomLevel(prev => Math.min(2.5, +(prev + 0.3).toFixed(1)));
+  const handleZoomOut = () => setZoomLevel(prev => Math.max(0.8, +(prev - 0.3).toFixed(1)));
+  const handleResetZoom = () => {
+    setZoomLevel(1);
+    setPan({ x: 0, y: 0 });
+  };
+
   return (
-    <div className={`relative w-full h-full rounded-2xl overflow-hidden border shadow-md flex flex-col transition-colors ${
+    <div className={`relative w-full h-full rounded-2xl overflow-hidden border shadow-md flex flex-col select-none transition-colors ${
       isLight 
-        ? 'bg-slate-50 border-slate-200' 
+        ? 'bg-slate-100 border-slate-200' 
         : 'bg-[#0B0F19] border-slate-800 shadow-2xl'
     } ${className}`}>
       
       {/* ======================================================== */}
       {/* TOP FLOATING INTERACTIVE CONTROLS BAR */}
       {/* ======================================================== */}
-      <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+      <div className="absolute top-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
         
         {/* Left: Category Selector (All / Equipment / Freight) */}
         <div className={`pointer-events-auto flex items-center p-1 rounded-xl border backdrop-blur-md shadow-lg text-xs font-semibold ${
@@ -135,178 +157,460 @@ export default function InteractiveMap({
           </button>
         </div>
 
-        {/* Right: Map Engine Switcher & Status */}
-        <div className={`pointer-events-auto flex items-center p-1 rounded-xl border backdrop-blur-md shadow-lg text-xs font-semibold ${
-          isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-slate-900/90 border-slate-700 text-white'
-        }`}>
-          <button
-            onClick={() => setMapMode('REAL')}
-            className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
-              mapMode === 'REAL'
-                ? 'bg-amber-500 text-slate-950 font-black'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-            title="Real interactive OpenStreetMap tiles"
-          >
-            🗺️ Street Map
-          </button>
+        {/* Right: Map Style Engine Switcher & Zoom Controls */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {/* Map Style Pills */}
+          <div className={`flex items-center p-1 rounded-xl border backdrop-blur-md shadow-lg text-xs font-semibold ${
+            isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-slate-900/90 border-slate-700 text-white'
+          }`}>
+            <button
+              onClick={() => setMapStyle('STREET')}
+              className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
+                mapStyle === 'STREET'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              🗺️ Street Map
+            </button>
 
-          <button
-            onClick={() => setMapMode('SATELLITE')}
-            className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
-              mapMode === 'SATELLITE'
-                ? 'bg-amber-500 text-slate-950 font-black'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-            title="High-definition satellite aerial imagery"
-          >
-            🛰️ Satellite
-          </button>
+            <button
+              onClick={() => setMapStyle('SATELLITE')}
+              className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
+                mapStyle === 'SATELLITE'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              🛰️ Satellite
+            </button>
 
-          <button
-            onClick={() => setMapMode('RADAR')}
-            className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
-              mapMode === 'RADAR'
-                ? 'bg-amber-500 text-slate-950 font-black'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-            title="Corridor telemetry schematic"
-          >
-            🧭 Radar
-          </button>
+            <button
+              onClick={() => setMapStyle('RADAR')}
+              className={`px-2.5 py-1 rounded-lg transition-all font-mono text-[11px] ${
+                mapStyle === 'RADAR'
+                  ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+              }`}
+            >
+              🧭 Radar
+            </button>
+          </div>
+
+          {/* Zoom In / Out / Reset Controls */}
+          <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg text-xs font-mono font-bold ${
+            isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-slate-900/90 border-slate-700 text-white'
+          }`}>
+            <button
+              onClick={handleZoomIn}
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-black"
+              title="Zoom In"
+            >
+              +
+            </button>
+            <button
+              onClick={handleZoomOut}
+              className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-sm font-black"
+              title="Zoom Out"
+            >
+              −
+            </button>
+            {zoomLevel !== 1 && (
+              <button
+                onClick={handleResetZoom}
+                className="px-2 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px]"
+                title="Reset Zoom"
+              >
+                Reset ({zoomLevel}x)
+              </button>
+            )}
+          </div>
         </div>
 
       </div>
 
       {/* ======================================================== */}
-      {/* MAP VIEW CANVAS (LEAFLET REAL MAP vs SVG RADAR) */}
+      {/* REALISTIC HIGH-PRECISION UAE GEOGRAPHIC MAP CANVAS */}
       {/* ======================================================== */}
-      {mapMode !== 'RADAR' ? (
-        <div className="relative w-full h-full min-h-[380px]">
-          <LeafletFleetMap
-            trips={displayedTrips}
-            selectedTripId={selectedTripId}
-            onSelectTrip={onSelectTrip}
-            theme={theme}
-            mapType={mapMode === 'SATELLITE' ? 'SATELLITE' : 'STREET'}
+      <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+        <svg 
+          viewBox={`0 0 ${mapWidth} ${mapHeight}`} 
+          className="w-full h-full object-cover"
+        >
+          <defs>
+            {/* Grid Pattern */}
+            <pattern id="uaeGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path 
+                d="M 40 0 L 0 0 0 40" 
+                fill="none" 
+                stroke={mapStyle === 'SATELLITE' ? "rgba(255,255,255,0.06)" : isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.04)"} 
+                strokeWidth="1" 
+              />
+            </pattern>
+
+            {/* Ocean Water Shading Gradient */}
+            <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              {mapStyle === 'SATELLITE' ? (
+                <>
+                  <stop offset="0%" stopColor="#0B192C" />
+                  <stop offset="100%" stopColor="#030C19" />
+                </>
+              ) : isLight ? (
+                <>
+                  <stop offset="0%" stopColor="#BAE6FD" />
+                  <stop offset="100%" stopColor="#7DD3FC" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor="#0F172A" />
+                  <stop offset="100%" stopColor="#020617" />
+                </>
+              )}
+            </linearGradient>
+
+            {/* Landmass Ground Gradient */}
+            <linearGradient id="landGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              {mapStyle === 'SATELLITE' ? (
+                <>
+                  <stop offset="0%" stopColor="#1E293B" />
+                  <stop offset="50%" stopColor="#1E212B" />
+                  <stop offset="100%" stopColor="#0F172A" />
+                </>
+              ) : isLight ? (
+                <>
+                  <stop offset="0%" stopColor="#F8FAFC" />
+                  <stop offset="50%" stopColor="#F1F5F9" />
+                  <stop offset="100%" stopColor="#E2E8F0" />
+                </>
+              ) : (
+                <>
+                  <stop offset="0%" stopColor="#1E293B" />
+                  <stop offset="100%" stopColor="#0B0F19" />
+                </>
+              )}
+            </linearGradient>
+
+            {/* Vehicle Glow Filter */}
+            <filter id="markerGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feComposite in="SourceGraphic" in2="blur" operator="over" />
+            </filter>
+          </defs>
+
+          {/* 1. Arabian Gulf Ocean Background */}
+          <rect width={mapWidth} height={mapHeight} fill="url(#oceanGrad)" />
+
+          {/* 2. Realistic UAE Landmass Shape (Ruwais to RAK and Western Region) */}
+          {/* Geographic Path covering UAE territory */}
+          <path
+            d="
+              M 0 540 
+              L 0 420 
+              Q 80 430 160 410 
+              Q 260 380 340 330 
+              T 480 270 
+              T 580 220 
+              T 680 160 
+              T 750 110 
+              T 820 60 
+              L 880 40 
+              L 960 40 
+              L 960 540 
+              Z
+            "
+            fill="url(#landGrad)"
+            stroke={mapStyle === 'SATELLITE' ? "#334155" : isLight ? "#CBD5E1" : "#334155"}
+            strokeWidth="2"
           />
-        </div>
-      ) : (
-        /* Fallback / Alternative SVG Radar Canvas */
-        <div className="relative w-full h-full flex items-center justify-center p-2">
-          <svg 
-            viewBox={`0 0 ${mapWidth} ${mapHeight}`} 
-            className="w-full h-full object-contain select-none"
+
+          {/* Desert Sand Dunes / Terrain Texture Lines */}
+          <path
+            d="M 120 480 Q 300 450 480 490 T 800 470"
+            fill="none"
+            stroke={mapStyle === 'SATELLITE' ? "rgba(255,255,255,0.05)" : isLight ? "rgba(203, 213, 225, 0.6)" : "rgba(255,255,255,0.03)"}
+            strokeWidth="1.5"
+            strokeDasharray="4,6"
+          />
+
+          {/* Arabian Gulf Text Watermark */}
+          <text 
+            x="320" 
+            y="140" 
+            fill={mapStyle === 'SATELLITE' ? "rgba(56, 189, 248, 0.2)" : isLight ? "rgba(2, 132, 199, 0.45)" : "rgba(56, 189, 248, 0.25)"} 
+            fontSize="15" 
+            fontWeight="800" 
+            letterSpacing="5"
           >
-            <defs>
-              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path 
-                  d="M 40 0 L 0 0 0 40" 
-                  fill="none" 
-                  stroke={isLight ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.04)"} 
-                  strokeWidth="1" 
+            ARABIAN GULF (COASTAL FREIGHT MARITIME ZONE)
+          </text>
+
+          {/* Optional Background Grid */}
+          <rect width={mapWidth} height={mapHeight} fill="url(#uaeGrid)" opacity="0.6" />
+
+          {/* 3. Major UAE Highway Network Arteries */}
+          {/* E11 Highway (Sheikh Zayed Road Corridor: Ruwais -> Abu Dhabi -> Jebel Ali -> Dubai -> Sharjah -> RAK) */}
+          <path
+            d="
+              M 110 435 
+              Q 250 400 370 340 
+              T 520 280 
+              T 640 200 
+              T 740 140 
+              T 810 80
+            "
+            fill="none"
+            stroke={isLight && mapStyle !== 'SATELLITE' ? "#64748B" : "#94A3B8"}
+            strokeWidth="5"
+            opacity={mapStyle === 'SATELLITE' ? "0.6" : "0.85"}
+          />
+          {/* E11 Centerline */}
+          <path
+            d="
+              M 110 435 
+              Q 250 400 370 340 
+              T 520 280 
+              T 640 200 
+              T 740 140 
+              T 810 80
+            "
+            fill="none"
+            stroke="#F59E0B"
+            strokeWidth="1.5"
+            strokeDasharray="8,6"
+            opacity="0.9"
+          />
+          <text 
+            x="525" 
+            y="265" 
+            fill={isLight && mapStyle !== 'SATELLITE' ? "#334155" : "#E2E8F0"} 
+            fontSize="10" 
+            fontWeight="800"
+            fontFamily="monospace"
+            transform="rotate(-28 525 265)"
+          >
+            E11 SHEIKH ZAYED CORRIDOR
+          </text>
+
+          {/* E311 Sheikh Mohammed Bin Zayed Road (Inland Freight Bypass) */}
+          <path
+            d="M 420 370 Q 560 300 680 180 T 780 100"
+            fill="none"
+            stroke={isLight && mapStyle !== 'SATELLITE' ? "#94A3B8" : "#64748B"}
+            strokeWidth="3.5"
+            opacity="0.75"
+          />
+          <text 
+            x="600" 
+            y="270" 
+            fill={isLight && mapStyle !== 'SATELLITE' ? "#475569" : "#94A3B8"} 
+            fontSize="9" 
+            fontWeight="700"
+            fontFamily="monospace"
+            transform="rotate(-30 600 270)"
+          >
+            E311 TRUCK BYPASS
+          </text>
+
+          {/* E611 Emirates Road (Heavy Haulage Route) */}
+          <path
+            d="M 460 410 Q 610 330 730 200 T 820 120"
+            fill="none"
+            stroke={isLight && mapStyle !== 'SATELLITE' ? "#CBD5E1" : "#475569"}
+            strokeWidth="3"
+            strokeDasharray="5,4"
+            opacity="0.7"
+          />
+
+          {/* E66 Dubai - Al Ain Highway */}
+          <path
+            d="M 640 200 L 780 390"
+            fill="none"
+            stroke={isLight && mapStyle !== 'SATELLITE' ? "#94A3B8" : "#64748B"}
+            strokeWidth="2.5"
+            opacity="0.6"
+          />
+
+          {/* E22 Abu Dhabi - Al Ain Highway */}
+          <path
+            d="M 370 340 L 780 390"
+            fill="none"
+            stroke={isLight && mapStyle !== 'SATELLITE' ? "#94A3B8" : "#64748B"}
+            strokeWidth="2.5"
+            opacity="0.6"
+          />
+
+          {/* 4. Major UAE Landmarks, Cities & Ports */}
+          {landmarks.map(lm => {
+            const [lx, ly] = projectCoords(lm.coords[0], lm.coords[1], mapWidth, mapHeight, zoomLevel, pan.x, pan.y);
+            const isPort = lm.type === 'PORT';
+            const isIndustrial = lm.type === 'INDUSTRIAL';
+
+            return (
+              <g key={lm.name} transform={`translate(${lx}, ${ly})`}>
+                <circle 
+                  r={isPort || isIndustrial ? "5" : "4"} 
+                  fill={isPort ? "#0284C7" : isIndustrial ? "#D97706" : "#64748B"} 
+                  stroke="#FFFFFF" 
+                  strokeWidth="1.5" 
                 />
-              </pattern>
-            </defs>
-
-            <rect width={mapWidth} height={mapHeight} fill={isLight ? "#F8FAFC" : "#0B0F19"} />
-            <rect width={mapWidth} height={mapHeight} fill="url(#grid)" />
-
-            {/* Coastline */}
-            <path
-              d="M 20 220 Q 200 240 380 280 T 560 210 T 680 150 T 800 110 T 880 70"
-              fill="none"
-              stroke={isLight ? "rgba(2, 132, 199, 0.45)" : "rgba(56, 189, 248, 0.2)"}
-              strokeWidth="3.5"
-              strokeDasharray="6,4"
-            />
-            <text 
-              x="280" 
-              y="160" 
-              fill={isLight ? "rgba(2, 132, 199, 0.5)" : "rgba(56, 189, 248, 0.25)"} 
-              fontSize="14" 
-              fontWeight="700" 
-              letterSpacing="4"
-            >
-              ARABIAN GULF (COASTAL FREIGHT CORRIDOR)
-            </text>
-
-            {/* E11 Highway */}
-            <path
-              d="M 60 410 Q 250 380 430 330 T 630 180 T 710 130"
-              fill="none"
-              stroke={isLight ? "rgba(100, 116, 139, 0.35)" : "rgba(148, 163, 184, 0.2)"}
-              strokeWidth="4"
-            />
-
-            {/* Landmarks */}
-            {landmarks.map(lm => {
-              const [px, py] = projectCoords(lm.coords[0], lm.coords[1], mapWidth, mapHeight);
-              return (
-                <g key={lm.name} transform={`translate(${px}, ${py})`}>
-                  <circle r="4" fill={isLight ? "#64748B" : "#94A3B8"} opacity="0.6" />
-                  <text 
-                    x="8" 
-                    y="4" 
-                    fill={isLight ? "#475569" : "#94A3B8"} 
-                    fontSize="11" 
-                    fontWeight="600" 
-                    fontFamily="monospace"
-                  >
-                    {lm.name}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Vehicle Markers in Radar Mode */}
-            {displayedTrips.map(trip => {
-              const [cx, cy] = projectCoords(trip.currentCoords[0], trip.currentCoords[1], mapWidth, mapHeight);
-              const isSelected = trip.id === selectedTripId;
-              const isEquipment = trip.category === 'EQUIPMENT';
-              const markerColor = isEquipment ? '#F59E0B' : '#0284C7';
-
-              return (
-                <g 
-                  key={trip.id} 
-                  transform={`translate(${cx}, ${cy})`}
-                  className="cursor-pointer"
-                  onClick={() => onSelectTrip && onSelectTrip(trip)}
+                <text 
+                  x="8" 
+                  y="4" 
+                  fill={mapStyle === 'SATELLITE' ? "#F8FAFC" : isLight ? "#1E293B" : "#F1F5F9"} 
+                  fontSize="10" 
+                  fontWeight={isPort || isIndustrial ? "800" : "600"} 
+                  fontFamily="system-ui, sans-serif"
                 >
-                  <circle r={isSelected ? "14" : "10"} fill={markerColor} opacity={isSelected ? "0.9" : "0.75"} />
-                  <circle r={isSelected ? "22" : "16"} fill="none" stroke={markerColor} strokeWidth="1.5" opacity="0.4" />
+                  {isPort ? '⚓ ' : isIndustrial ? '🏭 ' : ''}{lm.name}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* 5. Active Vehicle Route Breadcrumbs */}
+          {displayedTrips.map(trip => {
+            if (trip.routeTrail.length < 2) return null;
+            const isSelected = trip.id === selectedTrip?.id;
+            const isEquipment = trip.category === 'EQUIPMENT';
+            const strokeColor = isEquipment ? '#D97706' : '#0284C7';
+
+            const points = trip.routeTrail.map(coords => {
+              const [px, py] = projectCoords(coords[0], coords[1], mapWidth, mapHeight, zoomLevel, pan.x, pan.y);
+              return `${px},${py}`;
+            }).join(' ');
+
+            return (
+              <polyline
+                key={`route-${trip.id}`}
+                points={points}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={isSelected ? "4.5" : "2.5"}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={isSelected ? "0.9" : "0.5"}
+              />
+            );
+          })}
+
+          {/* 6. Active Vehicles Telematics Markers (Equipment vs Freight) */}
+          {displayedTrips.map(trip => {
+            const [vx, vy] = projectCoords(trip.currentCoords[0], trip.currentCoords[1], mapWidth, mapHeight, zoomLevel, pan.x, pan.y);
+            const isSelected = trip.id === selectedTrip?.id;
+            const isEquipment = trip.category === 'EQUIPMENT';
+            const isMoving = trip.status === 'IN_TRANSIT';
+
+            const primaryColor = isEquipment ? '#D97706' : '#0284C7';
+            const badgeBg = isEquipment ? '#FEF3C7' : '#E0F2FE';
+            const badgeText = isEquipment ? '#92400E' : '#0369A1';
+            const iconEmoji = isEquipment ? '🚜' : '📦';
+
+            return (
+              <g 
+                key={trip.id} 
+                transform={`translate(${vx}, ${vy})`}
+                className="cursor-pointer transition-transform hover:scale-110"
+                onClick={() => onSelectTrip && onSelectTrip(trip)}
+              >
+                {/* Active Movement Pulsing Ring */}
+                {isMoving && (
+                  <circle 
+                    r={isSelected ? "24" : "18"} 
+                    fill="none" 
+                    stroke={primaryColor} 
+                    strokeWidth="2" 
+                    opacity="0.4"
+                    className="animate-ping" 
+                  />
+                )}
+
+                {/* Base Outer Circle */}
+                <circle 
+                  r={isSelected ? "17" : "13"} 
+                  fill={isSelected ? '#0F172A' : '#FFFFFF'} 
+                  stroke={primaryColor} 
+                  strokeWidth={isSelected ? "3.5" : "2.5"} 
+                  filter="url(#markerGlow)"
+                />
+
+                {/* Category Icon Emoji inside pin */}
+                <text 
+                  x="0" 
+                  y={isSelected ? "5" : "4"} 
+                  textAnchor="middle" 
+                  fontSize={isSelected ? "14" : "11"}
+                >
+                  {iconEmoji}
+                </text>
+
+                {/* Directional Heading Arrow */}
+                {isMoving && (
+                  <g transform={`rotate(${trip.headingDeg})`}>
+                    <polygon 
+                      points="0,-22 -4,-15 4,-15" 
+                      fill={primaryColor} 
+                    />
+                  </g>
+                )}
+
+                {/* High-Visibility Callout Tag */}
+                <g transform="translate(18, -12)">
+                  <rect 
+                    x="0" 
+                    y="0" 
+                    width={isSelected ? "135" : "115"} 
+                    height="24" 
+                    rx="6" 
+                    fill={isSelected ? primaryColor : badgeBg} 
+                    stroke={primaryColor} 
+                    strokeWidth="1.5" 
+                  />
                   <text 
-                    x="18" 
-                    y="-4" 
-                    fill={isLight ? "#0F172A" : "#FFFFFF"} 
-                    fontSize="11" 
-                    fontWeight="800"
-                    fontFamily="monospace"
+                    x="6" 
+                    y="16" 
+                    fill={isSelected ? '#FFFFFF' : badgeText} 
+                    fontSize="10" 
+                    fontWeight="800" 
+                    fontFamily="ui-monospace, monospace"
                   >
-                    {isEquipment ? '🚜 ' : '📦 '}{trip.vehiclePlate} ({trip.speedKmh} km/h)
+                    {trip.vehiclePlate} {isMoving ? `• ${trip.speedKmh}k` : ''}
                   </text>
                 </g>
-              );
-            })}
-          </svg>
-        </div>
-      )}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
 
-      {/* Bottom Floating Legend Bar */}
-      <div className={`absolute bottom-3 left-3 z-10 flex items-center gap-3 px-3 py-1.5 rounded-xl border backdrop-blur-md text-[11px] font-mono font-bold shadow-md ${
-        isLight ? 'bg-white/95 border-slate-200 text-slate-700' : 'bg-slate-900/90 border-slate-700 text-slate-300'
-      }`}>
-        <span className="flex items-center gap-1.5 text-amber-700">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-          🚜 Heavy Equipment
-        </span>
-        <span className="text-slate-300">|</span>
-        <span className="flex items-center gap-1.5 text-blue-700">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-          📦 Commercial Freight
-        </span>
-        <span className="text-slate-300">|</span>
-        <span className="text-emerald-700">🟢 Live Ingestion (5s)</span>
+      {/* ======================================================== */}
+      {/* BOTTOM FLOATING SUMMARY & ACTIVE CALLOUT CARD */}
+      {/* ======================================================== */}
+      <div className="absolute bottom-3 left-3 right-3 z-30 flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        
+        {/* Left: Legend Indicator */}
+        <div className={`pointer-events-auto flex items-center gap-3 px-3.5 py-1.5 rounded-xl border backdrop-blur-md text-[11px] font-mono font-bold shadow-md ${
+          isLight ? 'bg-white/95 border-slate-200 text-slate-700' : 'bg-slate-900/90 border-slate-700 text-slate-300'
+        }`}>
+          <span className="flex items-center gap-1.5 text-amber-700">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+            🚜 Heavy Equipment ({trips.filter(t => t.category === 'EQUIPMENT').length})
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="flex items-center gap-1.5 text-blue-700">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+            📦 Commercial Freight ({trips.filter(t => t.category === 'FREIGHT').length})
+          </span>
+          <span className="text-slate-300">|</span>
+          <span className="text-emerald-700 font-bold">🟢 Live Telemetry Active</span>
+        </div>
+
+        {/* Right: Quick Zoom Notice */}
+        <div className={`pointer-events-auto hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl border backdrop-blur-md text-[11px] font-mono ${
+          isLight ? 'bg-white/95 border-slate-200 text-slate-600' : 'bg-slate-900/90 border-slate-700 text-slate-300'
+        }`}>
+          <span>Click vehicle pin to inspect • Use + / - to zoom corridors</span>
+        </div>
+
       </div>
 
     </div>
