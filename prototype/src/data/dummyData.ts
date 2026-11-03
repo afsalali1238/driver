@@ -30,9 +30,12 @@ export interface TripData {
     receiverPhone: string;
     receiverRole: string;
     signedAt: string;
-    signatureUrl: string;
+    signatureUrl?: string;
     deliveryNotes: string;
     consignmentNumber: string;
+    stampedDocPhotoUrl?: string;
+    offloadCargoPhotoUrl?: string;
+    watermarkGps?: string;
   };
 }
 

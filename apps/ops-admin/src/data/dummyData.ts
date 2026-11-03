@@ -30,9 +30,12 @@ export interface TripData {
     receiverPhone: string;
     receiverRole: string;
     signedAt: string;
-    signatureUrl: string;
+    signatureUrl?: string;
     deliveryNotes: string;
     consignmentNumber: string;
+    stampedDocPhotoUrl?: string;
+    offloadCargoPhotoUrl?: string;
+    watermarkGps?: string;
   };
 }
 
@@ -164,6 +167,9 @@ export const DUMMY_TRIPS: TripData[] = [
       signatureUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="220" height="80"><path d="M 20 50 Q 60 10 90 45 T 160 30 T 200 55" stroke="%2310B981" stroke-width="3" fill="none"/></svg>',
       deliveryNotes: 'Equipment offloaded without incident. No damage to hydraulic lines. Signed & stamped.',
       consignmentNumber: 'KSP-POD-YAS-44012',
+      stampedDocPhotoUrl: 'preset_stamped_do',
+      offloadCargoPhotoUrl: 'preset_offload_cargo',
+      watermarkGps: '24.4821° N, 54.6041° E • Yas Island Theme Park Zone',
     }
   },
   {

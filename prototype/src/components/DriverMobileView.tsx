@@ -826,16 +826,65 @@ export default function DriverMobileView({
                     </div>
                   )}
 
-                  {/* Electronic Proof of Delivery (ePOD) */}
+                  {/* Electronic Proof of Delivery (ePOD) - Photo-First */}
                   {tripSubTab === 'EPOD' && (
-                    <div className="space-y-2">
-                      <div className="text-[10px] font-mono text-slate-500 font-bold uppercase">
-                        Receiver Electronic Signature
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-amber-600 font-bold uppercase">
+                        <span>📸 Photo Proof of Delivery (ePOD)</span>
+                        <span className="text-emerald-600 font-bold">Field Standard</span>
                       </div>
 
-                      <div className="space-y-1.5 text-xs">
+                      {/* Photo 1: Stamped DO */}
+                      <div className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-amber-50/60 dark:bg-slate-900 space-y-1.5 text-left">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[10px] text-slate-800 dark:text-slate-200">1. Stamped Paper Delivery Note (DO)</span>
+                          <span className="text-[8px] font-mono font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">ATTACHED</span>
+                        </div>
+                        <div className="border border-dashed border-rose-300 dark:border-rose-900 bg-white dark:bg-slate-950 p-2 rounded text-center relative overflow-hidden">
+                          <div className="text-[8.5px] font-mono font-bold text-slate-800 dark:text-slate-200">AL NABOODAH CONTRACTING LLC</div>
+                          <div className="text-[7.5px] text-slate-400 font-mono">SITE DELIVERY RECEIPT #DO-2026-9941</div>
+                          <div className="my-1 py-0.5 px-2 border-2 border-dashed border-rose-600 text-rose-600 font-black text-[8px] inline-block -rotate-2 rounded">
+                            ★ RECEIVED & STAMPED ★
+                          </div>
+                          <div className="text-[7.5px] font-mono text-slate-500">Site Engineer: {receiverName}</div>
+                        </div>
+                        <div className="flex items-center justify-between text-[7.5px] font-mono text-slate-400 pt-0.5">
+                          <span>📍 24.5332° N, 54.4021° E</span>
+                          <span className="text-emerald-600 font-bold">GPS Verified ✓</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => alert('📸 Photo clicked with GPS & timestamp watermark overlay.')}
+                            className="py-1 px-2 bg-amber-500 text-slate-950 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1 shadow-xs"
+                          >
+                            <Camera className="w-3 h-3" />
+                            Click Photo
+                          </button>
+                          <label className="py-1 px-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-[9px] flex items-center justify-center gap-1 border border-slate-300 dark:border-slate-700 cursor-pointer">
+                            <Upload className="w-3 h-3 text-blue-500" />
+                            Attach File
+                            <input type="file" accept="image/*" className="hidden" onChange={() => alert('Photo attached successfully.')} />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Photo 2: Offloaded Cargo */}
+                      <div className="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-[10px] text-slate-800 dark:text-slate-200">2. Offloaded Equipment on Site</span>
+                          <span className="text-[8px] font-mono font-bold text-emerald-600 bg-emerald-500/10 px-1.5 py-0.5 rounded">VERIFIED</span>
+                        </div>
+                        <div className="bg-slate-200 dark:bg-slate-800 h-14 rounded flex flex-col items-center justify-center text-center p-1">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200">🚜 Equipment Placed at Project Site</span>
+                          <span className="text-[7.5px] font-mono text-emerald-600 font-bold">Zero Mechanical Damage</span>
+                        </div>
+                      </div>
+
+                      {/* Receiver inputs */}
+                      <div className="grid grid-cols-2 gap-1.5 text-xs">
                         <div>
-                          <label className="text-[9px] font-mono text-slate-400 block">{t.receiver}</label>
+                          <label className="text-[8.5px] font-mono text-slate-400 block">{t.receiver}</label>
                           <input 
                             type="text" 
                             value={receiverName}
@@ -844,7 +893,7 @@ export default function DriverMobileView({
                           />
                         </div>
                         <div>
-                          <label className="text-[9px] font-mono text-slate-400 block">{t.designation}</label>
+                          <label className="text-[8.5px] font-mono text-slate-400 block">{t.designation}</label>
                           <input 
                             type="text" 
                             value={receiverRole}
@@ -854,40 +903,16 @@ export default function DriverMobileView({
                         </div>
                       </div>
 
-                      {/* Signature Canvas */}
-                      <div className="border border-slate-300 dark:border-slate-700 rounded-xl overflow-hidden bg-white p-1">
-                        <canvas
-                          ref={canvasRef}
-                          width={280}
-                          height={90}
-                          onMouseDown={startDrawing}
-                          onMouseMove={draw}
-                          onMouseUp={stopDrawing}
-                          onMouseLeave={stopDrawing}
-                          onTouchStart={startDrawing}
-                          onTouchMove={draw}
-                          onTouchEnd={stopDrawing}
-                          className="w-full h-[90px] bg-slate-50 rounded-lg cursor-crosshair touch-none"
-                        />
-                        <div className="flex justify-between items-center px-1 pt-1 text-[9px] font-mono text-slate-400">
-                          <span>{t.signHere}</span>
-                          <button onClick={clearCanvas} className="text-rose-600 font-bold hover:underline">
-                            {t.clear}
-                          </button>
-                        </div>
-                      </div>
-
                       <button
-                        disabled={!hasSignature || epodSubmitted}
                         onClick={() => {
                           setEpodSubmitted(true);
                           updateStage('DELIVERED');
-                          alert('ePOD Signed & Cryptographically Timestamped! GPS tracking has been stopped.');
+                          alert('✅ Stamped Delivery Note photo & GPS watermark confirmed! ePOD synced.');
                         }}
-                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
+                        className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5"
                       >
                         <CheckCircle2 className="w-4 h-4" />
-                        <span>{epodSubmitted ? '✓ POD Confirmed & Dispatched' : t.submitPOD}</span>
+                        <span>{epodSubmitted ? '✓ Stamped ePOD Dispatched' : 'SUBMIT STAMPED ePOD & DELIVER'}</span>
                       </button>
                     </div>
                   )}

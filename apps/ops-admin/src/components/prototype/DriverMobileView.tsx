@@ -6,7 +6,7 @@ import {
   Truck, Navigation, ShieldCheck, Camera, CheckSquare, 
   MapPin, Phone, WifiOff, Wifi, Globe, PenTool, CheckCircle2,
   RefreshCw, FileText, ArrowRight, Battery, Signal, ArrowLeft,
-  Smartphone
+  Smartphone, Upload, ImageIcon, Sparkles
 } from './Icons';
 
 interface DriverMobileViewProps {
@@ -39,6 +39,51 @@ export default function DriverMobileView({
   const [receiverName, setReceiverName] = useState('Eng. Mustafa Al-Hashimi');
   const [receiverRole, setReceiverRole] = useState('Senior Site Logistics Engineer');
   const [epodSubmitted, setEpodSubmitted] = useState(false);
+
+  // Photo-First ePOD States
+  const [docPhotoAttached, setDocPhotoAttached] = useState(true);
+  const [cargoPhotoAttached, setCargoPhotoAttached] = useState(true);
+  const [customDocImage, setCustomDocImage] = useState<string | null>(null);
+  const [customCargoImage, setCustomCargoImage] = useState<string | null>(null);
+  const [photoFlash, setPhotoFlash] = useState<boolean>(false);
+  const [selectedRemark, setSelectedRemark] = useState<string>('Offloaded in good condition. Stamped delivery order verified.');
+  const [showOptionalSignature, setShowOptionalSignature] = useState(false);
+  const docFileInputRef = useRef<HTMLInputElement | null>(null);
+  const cargoFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleDocFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCustomDocImage(event.target?.result as string);
+        setDocPhotoAttached(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCargoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setCustomCargoImage(event.target?.result as string);
+        setCargoPhotoAttached(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerCameraClick = (type: 'DOC' | 'CARGO') => {
+    setPhotoFlash(true);
+    setTimeout(() => setPhotoFlash(false), 250);
+    if (type === 'DOC') {
+      setDocPhotoAttached(true);
+    } else {
+      setCargoPhotoAttached(true);
+    }
+  };
 
   // Pre-trip inspection checkboxes
   const [inspectionChecks, setInspectionChecks] = useState({
@@ -126,17 +171,23 @@ export default function DriverMobileView({
       arrivedPickup: 'ARRIVED AT PICKUP',
       startTransit: 'START TRANSIT TO SITE',
       arrivedSite: 'ARRIVED AT SITE',
-      completeEpod: 'SIGN & DELIVER (ePOD)',
+      completeEpod: 'PHOTO ePOD & DELIVER',
       inspection: 'PRE-TRIP CHECK',
-      epodTitle: 'ELECTRONIC POD',
+      epodTitle: 'PHOTO ePOD',
       receiver: 'RECEIVER NAME',
       designation: 'DESIGNATION',
-      signHere: 'TOUCH OR MOUSE SIGNATURE BELOW',
+      signHere: 'OPTIONAL TOUCH SIGNATURE',
       clear: 'CLEAR',
-      submitPOD: 'SUBMIT DELIVERY PROOF',
+      submitPOD: 'SUBMIT STAMPED ePOD & DELIVER',
       tripGatedNotice: 'Privacy Active: GPS only streamed while trip is in progress',
       offlineActive: 'OFFLINE MODE: Buffered in SQLite',
       onlineActive: 'ONLINE: Connected to Kasper Ingestion API',
+      docPhotoTitle: '1. Stamped Delivery Note (Paper DO)',
+      cargoPhotoTitle: '2. Offloaded Equipment on Site',
+      clickPhoto: 'Click Photo',
+      attachPhoto: 'Attach Photo',
+      watermarkVerified: 'GPS & Time Watermark Verified',
+      quickRemarks: 'Delivery Notes',
     },
     AR: {
       appName: 'كاسبر للسائقين',
@@ -148,17 +199,23 @@ export default function DriverMobileView({
       arrivedPickup: 'تم الوصول لموقع الاستلام',
       startTransit: 'بدء التحرك لموقع المشروع',
       arrivedSite: 'تم الوصول للمشروع',
-      completeEpod: 'توقيع إثبات التسليم الإلكتروني',
+      completeEpod: 'تصوير سند التسليم المختوم (ePOD)',
       inspection: 'الفحص الميداني',
-      epodTitle: 'إثبات التسليم الرقمي',
+      epodTitle: 'إثبات التسليم بالصور',
       receiver: 'اسم المستلم المعتمد',
       designation: 'الصفة الوظيفية',
-      signHere: 'وقع هنا باللمس أو الفأرة',
+      signHere: 'توقيع إلكتروني اختياري باللمس',
       clear: 'مسح التوقيع',
-      submitPOD: 'اعتماد وتسليم البضاعة',
+      submitPOD: 'اعتماد سند التسليم المختوم والإنهاء',
       tripGatedNotice: 'الخصوصية مفعلة: يتم تتبع الموقع فقط خلال سير الرحلة',
       offlineActive: 'وضع عدم الاتصال: يتم الحفظ محلياً في SQLite',
       onlineActive: 'متصل: جاهز لإرسال البيانات',
+      docPhotoTitle: '١. سند التسليم المختوم والموقع (DO)',
+      cargoPhotoTitle: '٢. صورة المعدة المنزلة في الموقع',
+      clickPhoto: 'التقاط صورة',
+      attachPhoto: 'إرفاق صورة',
+      watermarkVerified: 'بصمة الموقع الجغرافي والوقت موثقة',
+      quickRemarks: 'ملاحظات التسليم',
     },
     UR: {
       appName: 'کیسپر ڈرائیور',
@@ -170,17 +227,23 @@ export default function DriverMobileView({
       arrivedPickup: 'پک اپ پر پہنچ گئے',
       startTransit: 'سائیٹ کے لیے روانہ ہوں',
       arrivedSite: 'سائیٹ پر پہنچ گئے',
-      completeEpod: 'ڈیجیٹل سائن اور مکمل کریں',
+      completeEpod: 'تصویری رسید اور ڈلیوری (ePOD)',
       inspection: 'گاڑی کا معائنہ',
-      epodTitle: 'ڈیجیٹل رسید (ePOD)',
+      epodTitle: 'تصویری ثبوت رسید',
       receiver: 'وصول کنندہ کا نام',
       designation: 'عہدہ',
-      signHere: 'یہاں سائن کریں',
+      signHere: 'اختیاری سائن',
       clear: 'دوبارہ سائن کریں',
-      submitPOD: 'ڈلیوری مکمل کریں',
+      submitPOD: 'مہر شدہ رسید جمع کرائیں',
       tripGatedNotice: 'پرائیویسی فعال: لوکیشن صرف فعال سفر کے دوران ریکارڈ ہوگی',
       offlineActive: 'آف لائن موڈ: لوکل اسٹوریج میں محفوظ ہو رہا ہے',
       onlineActive: 'آن لائن: سسٹم سے منسلک ہے',
+      docPhotoTitle: '1. مہر لگی رسید کی تصویر (DO)',
+      cargoPhotoTitle: '2. سائیٹ پر اتارے گئے سامان کی تصویر',
+      clickPhoto: 'تصویر بنائیں',
+      attachPhoto: 'تصویر لگائیں',
+      watermarkVerified: 'GPS اور وقت تصدیق شدہ',
+      quickRemarks: 'ڈلیوری نوٹس',
     }
   }[lang];
 
@@ -549,7 +612,7 @@ export default function DriverMobileView({
                         onClick={() => setActiveTab('EPOD')}
                         className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-transform animate-bounce"
                       >
-                        <PenTool className="w-4 h-4" />
+                        <Camera className="w-4 h-4" />
                         {t.completeEpod}
                       </button>
                     )}
@@ -557,7 +620,7 @@ export default function DriverMobileView({
                     {tripState === 'DELIVERED' && (
                       <div className="w-full py-2.5 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 text-center text-xs font-bold flex items-center justify-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        DELIVERY COMPLETED & EPOD SIGNED
+                        DELIVERY COMPLETED & STAMPED ePOD ATTACHED
                       </div>
                     )}
                   </div>
@@ -623,82 +686,341 @@ export default function DriverMobileView({
                 </div>
               )}
 
-              {/* TAB 3: ELECTRONIC PROOF OF DELIVERY (ePOD) */}
+              {/* TAB 3: ELECTRONIC PROOF OF DELIVERY (ePOD) - PHOTO-FIRST */}
               {activeTab === 'EPOD' && (
                 <div className="space-y-2.5">
-                  <div className="text-[10px] font-mono text-amber-600 font-bold uppercase">
-                    Consignee Cryptographic Handover
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-amber-600 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <Camera className="w-3 h-3" />
+                      Photo Proof of Delivery (ePOD)
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 text-[9px] font-mono font-bold">
+                      FIELD STANDARD
+                    </span>
                   </div>
 
-                  {/* Receiver Information Inputs */}
-                  <div className="space-y-2 text-xs">
-                    <div>
-                      <label className="text-[9px] font-mono text-slate-500 font-bold block mb-0.5">{t.receiver}</label>
-                      <input
-                        type="text"
-                        value={receiverName}
-                        onChange={(e) => setReceiverName(e.target.value)}
-                        className={`w-full rounded-lg px-2.5 py-1 text-xs font-semibold border ${
-                          isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
-                        }`}
-                      />
+                  {/* Hidden native file inputs for real device camera / photo upload */}
+                  <input 
+                    ref={docFileInputRef} 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="hidden" 
+                    onChange={handleDocFileUpload} 
+                  />
+                  <input 
+                    ref={cargoFileInputRef} 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment"
+                    className="hidden" 
+                    onChange={handleCargoFileUpload} 
+                  />
+
+                  {/* Camera Flash Animation Indicator */}
+                  {photoFlash && (
+                    <div className="fixed inset-0 z-50 bg-white/90 pointer-events-none transition-opacity duration-200 animate-ping"></div>
+                  )}
+
+                  {/* ======================================================== */}
+                  {/* PHOTO 1: STAMPED PHYSICAL DELIVERY NOTE / DO (MANDATORY) */}
+                  {/* ======================================================== */}
+                  <div className={`p-2.5 rounded-xl border space-y-2 transition-colors ${
+                    isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-amber-500" />
+                        <span className="font-bold text-[11px]">{t.docPhotoTitle}</span>
+                      </div>
+                      {docPhotoAttached ? (
+                        <span className="flex items-center gap-1 text-[9px] font-mono text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                          <CheckCircle2 className="w-3 h-3" />
+                          ATTACHED
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-amber-600 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">
+                          REQUIRED
+                        </span>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="text-[9px] font-mono text-slate-500 font-bold block mb-0.5">{t.designation}</label>
-                      <input
-                        type="text"
-                        value={receiverRole}
-                        onChange={(e) => setReceiverRole(e.target.value)}
-                        className={`w-full rounded-lg px-2.5 py-1 text-xs font-semibold border ${
-                          isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
-                        }`}
-                      />
-                    </div>
-                  </div>
+                    {/* Stamped Document Preview Box */}
+                    <div className="relative rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 bg-amber-50/50 dark:bg-slate-950 p-2 text-left">
+                      {customDocImage ? (
+                        <img 
+                          src={customDocImage} 
+                          alt="Uploaded Delivery Note" 
+                          className="w-full h-28 object-cover rounded" 
+                        />
+                      ) : (
+                        <div className="space-y-1 select-none">
+                          <div className="flex justify-between items-start border-b border-dashed border-slate-300 dark:border-slate-800 pb-1">
+                            <div>
+                              <div className="text-[9px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                                AL NABOODAH CONTRACTING LLC
+                              </div>
+                              <div className="text-[8px] text-slate-500 font-mono">
+                                PROJECT SITE DELIVERY RECEIPT • DO-2026-9941
+                              </div>
+                            </div>
+                            <span className="text-[8px] font-mono bg-blue-100 text-blue-800 font-bold px-1 rounded">
+                              ORIGINAL
+                            </span>
+                          </div>
 
-                  {/* Interactive Signature Canvas */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-mono text-slate-500 font-bold">{t.signHere}</span>
+                          <div className="text-[8.5px] text-slate-600 dark:text-slate-400 font-mono py-0.5">
+                            <div>CARGO: <strong className="text-slate-900 dark:text-slate-100">{safeTrip?.cargoDescription || 'Excavator'}</strong></div>
+                            <div>DEST: {safeTrip?.destinationName || 'Saadiyat Cultural District'}</div>
+                          </div>
+
+                          {/* Official Red & Blue Rubber Stamp with Signature Overlay */}
+                          <div className="pt-1 flex items-center justify-between">
+                            <div className="relative inline-block border-2 border-dashed border-rose-600 text-rose-600 rounded px-2 py-0.5 -rotate-2 bg-rose-50/80 shadow-xs">
+                              <div className="text-[7.5px] font-black tracking-widest text-center leading-none">
+                                ★ RECEIVED & STAMPED ★
+                              </div>
+                              <div className="text-[7px] font-bold text-center leading-none mt-0.5">
+                                SAADIYAT SITE OFFICE
+                              </div>
+                              <div className="text-[6.5px] font-mono text-center text-rose-800">
+                                03-NOV-2026 • GATE 3
+                              </div>
+                              {/* Blue ink handwritten signature stroke */}
+                              <svg className="absolute -inset-1 w-full h-full pointer-events-none" viewBox="0 0 100 30">
+                                <path d="M 5 22 Q 30 5 45 20 T 75 10 T 95 18" stroke="#1D4ED8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                              </svg>
+                            </div>
+                            
+                            <div className="text-right">
+                              <div className="text-[8px] text-slate-500 font-mono">SITE ENGINEER</div>
+                              <div className="text-[9px] font-bold text-slate-800 dark:text-slate-200">{receiverName}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* GPS Cryptographic Watermark Ribbon */}
+                      <div className="mt-1 pt-1 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[7.5px] font-mono text-slate-500">
+                        <span className="flex items-center gap-0.5">
+                          <MapPin className="w-2.5 h-2.5 text-amber-500" />
+                          24.5332° N, 54.4021° E
+                        </span>
+                        <span>08:42 AM GST</span>
+                        <span className="text-emerald-600 font-bold">SHA-256 ✓</span>
+                      </div>
+                    </div>
+
+                    {/* Photo Action Buttons: Click Photo vs Attach Photo */}
+                    <div className="grid grid-cols-2 gap-2 pt-0.5">
                       <button
-                        onClick={clearCanvas}
-                        className="text-[10px] font-bold text-amber-600 hover:text-amber-700"
+                        type="button"
+                        onClick={() => triggerCameraClick('DOC')}
+                        className="py-1.5 px-2 bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1 shadow-sm transition-transform"
                       >
-                        {t.clear}
+                        <Camera className="w-3.5 h-3.5" />
+                        {t.clickPhoto}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => docFileInputRef.current?.click()}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1 border transition-colors ${
+                          isLight 
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300' 
+                            : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        {t.attachPhoto}
                       </button>
                     </div>
+                  </div>
 
-                    <div className="bg-white rounded-xl overflow-hidden border-2 border-slate-300 dark:border-slate-700 h-24 touch-none">
-                      <canvas
-                        ref={canvasRef}
-                        width={310}
-                        height={96}
-                        onMouseDown={startDrawing}
-                        onMouseMove={draw}
-                        onMouseUp={stopDrawing}
-                        onMouseLeave={stopDrawing}
-                        onTouchStart={startDrawing}
-                        onTouchMove={draw}
-                        onTouchEnd={stopDrawing}
-                        className="w-full h-full cursor-crosshair"
-                      />
+                  {/* ======================================================== */}
+                  {/* PHOTO 2: OFFLOADED EQUIPMENT / CARGO ON SITE */}
+                  {/* ======================================================== */}
+                  <div className={`p-2.5 rounded-xl border space-y-2 transition-colors ${
+                    isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-slate-900 border-slate-800'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Truck className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className="font-bold text-[11px]">{t.cargoPhotoTitle}</span>
+                      </div>
+                      {cargoPhotoAttached ? (
+                        <span className="flex items-center gap-1 text-[9px] font-mono text-emerald-600 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                          <CheckCircle2 className="w-3 h-3" />
+                          ATTACHED
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-slate-400">OPTIONAL</span>
+                      )}
+                    </div>
+
+                    {/* Offload Photo Viewport */}
+                    <div className="relative rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-950 h-20 flex items-center justify-center p-2 text-center">
+                      {customCargoImage ? (
+                        <img 
+                          src={customCargoImage} 
+                          alt="Offloaded Cargo on Site" 
+                          className="w-full h-full object-cover rounded" 
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 rounded flex flex-col items-center justify-center relative overflow-hidden">
+                          <div className="text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 z-10">
+                            <span>🚜</span>
+                            <span>{safeTrip?.cargoDescription?.split(' ')[0] || 'Equipment'} Offloaded at Site Laydown Bay 4</span>
+                          </div>
+                          <div className="text-[8px] font-mono text-emerald-700 dark:text-emerald-400 font-bold z-10 mt-0.5">
+                            ✓ Visual Inspection Complete • Zero Mechanical Damage
+                          </div>
+                          <div className="absolute bottom-1 right-2 text-[7.5px] font-mono text-slate-500">
+                            GPS Verified Site Placement
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Cargo Photo Buttons */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => triggerCameraClick('CARGO')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1 border transition-colors ${
+                          isLight 
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300' 
+                            : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                        }`}
+                      >
+                        <Camera className="w-3.5 h-3.5 text-amber-500" />
+                        {t.clickPhoto}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => cargoFileInputRef.current?.click()}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-[10px] flex items-center justify-center gap-1 border transition-colors ${
+                          isLight 
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300' 
+                            : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5 text-blue-500" />
+                        {t.attachPhoto}
+                      </button>
                     </div>
                   </div>
 
-                  {/* Submit Delivery Proof */}
+                  {/* ======================================================== */}
+                  {/* RECEIVER & QUICK DELIVERY REMARKS */}
+                  {/* ======================================================== */}
+                  <div className="space-y-2 text-xs">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[8.5px] font-mono text-slate-500 font-bold block mb-0.5">{t.receiver}</label>
+                        <input
+                          type="text"
+                          value={receiverName}
+                          onChange={(e) => setReceiverName(e.target.value)}
+                          className={`w-full rounded-lg px-2 py-1 text-[11px] font-semibold border ${
+                            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+                          }`}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[8.5px] font-mono text-slate-500 font-bold block mb-0.5">{t.designation}</label>
+                        <input
+                          type="text"
+                          value={receiverRole}
+                          onChange={(e) => setReceiverRole(e.target.value)}
+                          className={`w-full rounded-lg px-2 py-1 text-[11px] font-semibold border ${
+                            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
+                          }`}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Quick Remark Chips */}
+                    <div>
+                      <label className="text-[8.5px] font-mono text-slate-500 font-bold block mb-1">
+                        {t.quickRemarks}
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          'Offloaded in good condition. Stamped delivery order verified.',
+                          'Gate pass cleared. Offloaded at bay without delay.',
+                          'Security inspection passed. Clean handover.'
+                        ].map(remark => (
+                          <button
+                            key={remark}
+                            type="button"
+                            onClick={() => setSelectedRemark(remark)}
+                            className={`text-[9px] px-2 py-0.5 rounded-full border text-left transition-colors ${
+                              selectedRemark === remark
+                                ? 'bg-amber-500/15 border-amber-500 text-amber-800 dark:text-amber-300 font-bold'
+                                : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {remark.slice(0, 32)}...
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Collapsible Optional Touch Signature Pad */}
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowOptionalSignature(!showOptionalSignature)}
+                        className="text-[10px] font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                      >
+                        <PenTool className="w-3 h-3" />
+                        {showOptionalSignature ? 'Hide Optional Signature' : '+ Optional On-Screen Finger Signature'}
+                      </button>
+
+                      {showOptionalSignature && (
+                        <div className="mt-1.5 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[8.5px] font-mono text-slate-400">Touch signature on screen</span>
+                            <button onClick={clearCanvas} className="text-[8.5px] font-bold text-rose-500">
+                              Clear
+                            </button>
+                          </div>
+                          <div className="bg-white rounded-lg overflow-hidden border border-slate-300 h-16 touch-none">
+                            <canvas
+                              ref={canvasRef}
+                              width={310}
+                              height={64}
+                              onMouseDown={startDrawing}
+                              onMouseMove={draw}
+                              onMouseUp={stopDrawing}
+                              onMouseLeave={stopDrawing}
+                              onTouchStart={startDrawing}
+                              onTouchMove={draw}
+                              onTouchEnd={stopDrawing}
+                              className="w-full h-full cursor-crosshair"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Primary Submit Button: Stamped ePOD Submission */}
                   <button
                     onClick={() => {
-                      if (!hasSignature) {
-                        alert('Please sign on the canvas to confirm delivery.');
+                      if (!docPhotoAttached) {
+                        alert('Please snap or attach the photo of the stamped delivery note first.');
                         return;
                       }
                       setEpodSubmitted(true);
                       updateStage('DELIVERED');
-                      alert('ePOD Submitted! Cryptographic consignment note generated and synced.');
+                      alert('✅ ePOD Confirmed! Physical stamped delivery order photo & GPS watermark saved to SQLite buffer and pushed to Ops Dispatch.');
                       setActiveTab('TRIP');
                     }}
-                    className="w-full h-10 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition-transform"
+                    className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition-transform"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     {t.submitPOD}

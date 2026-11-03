@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Share, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { driverApi } from '@/lib/api';
 import { useTripStore } from '@/store/tripStore';
@@ -33,6 +33,23 @@ export default function TripScreen() {
     setRefreshing(true);
     await loadTrip();
     setRefreshing(false);
+  };
+
+  
+  const handleShareTrackingLink = async () => {
+    if (!trip) return;
+    const trackingUrl = `https://track.kasperpro.com/t/${trip.trackingToken || trip.tripCode}`;
+    const message = `🚨 *KASPER FREIGHT LIVE TRACKING* 🚨\n\n📦 Cargo: ${trip.cargo?.title || 'Heavy Consignment'}\n📍 Destination: ${trip.destination?.address || 'Site'}\n🕒 Status: ${STATUS_LABELS[currentStatus]}\n\n🔗 Track Heavy Equipment Live (Zero Login):\n${trackingUrl}`;
+
+    try {
+      await Share.share({
+        message,
+        url: trackingUrl,
+        title: `Kasper Live Tracking: ${trip.tripCode}`
+      });
+    } catch (error) {
+      console.error('Error sharing tracking link:', error);
+    }
   };
 
   const handleNextStatus = async () => {
@@ -113,6 +130,19 @@ export default function TripScreen() {
         </View>
       </View>
 
+      
+      {/* Client Live Tracking Link Sharing Button */}
+      <View style={styles.shareCard}>
+        <View style={styles.shareCardHeader}>
+          <Text style={styles.shareCardTitle}>SHARE LIVE GPS WITH CLIENT</Text>
+          <Text style={styles.shareCardBadge}>TOKENIZED LINK</Text>
+        </View>
+        <Text style={styles.shareCardText}>Send live map link to site consignee with real-time ETA & route updates.</Text>
+        <TouchableOpacity style={styles.shareBtn} onPress={handleShareTrackingLink}>
+          <Text style={styles.shareBtnText}>📲 Share Live Tracking via WhatsApp / SMS</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Live Location */}
       {currentLocation && !isCompleted && (
         <View style={styles.sectionCard}>
@@ -187,6 +217,15 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 16, color: '#64748b', textAlign: 'center', marginBottom: 24 },
   refreshButton: { paddingHorizontal: 24, paddingVertical: 12, backgroundColor: '#0ea5e9', borderRadius: 12 },
   refreshButtonText: { color: 'white', fontWeight: '600' },
+  
+  shareCard: { backgroundColor: '#eff6ff', borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 16, borderWidth: 1, borderColor: '#bfdbfe' },
+  shareCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  shareCardTitle: { fontSize: 11, fontWeight: '800', color: '#1d4ed8', letterSpacing: 0.5 },
+  shareCardBadge: { fontSize: 9, fontWeight: '700', color: '#1d4ed8', backgroundColor: '#dbeafe', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  shareCardText: { fontSize: 12, color: '#475569', marginBottom: 12, lineHeight: 16 },
+  shareBtn: { backgroundColor: '#2563eb', paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  shareBtnText: { color: 'white', fontWeight: '700', fontSize: 13 },
+
   headerCard: { backgroundColor: 'white', borderRadius: 16, padding: 20, margin: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   tripCode: { fontSize: 20, fontWeight: '800', color: '#1e293b', fontFamily: 'monospace' },

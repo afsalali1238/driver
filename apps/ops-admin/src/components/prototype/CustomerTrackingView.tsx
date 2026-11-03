@@ -120,6 +120,60 @@ export default function CustomerTrackingView({
         />
       </div>
 
+      {/* If Delivered: Stamped Photo ePOD Verification Card */}
+      {trip.status === 'DELIVERED' && trip.epod && (
+        <div className={`rounded-2xl p-4 border shadow-sm space-y-3 transition-colors ${
+          isLight ? 'bg-emerald-50/70 border-emerald-300 text-slate-900' : 'bg-emerald-950/30 border-emerald-800 text-emerald-100'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center font-bold">
+                ✓
+              </span>
+              <div>
+                <h3 className="font-black text-sm text-emerald-900 dark:text-emerald-200">Electronic Proof of Delivery (ePOD) Verified</h3>
+                <span className="text-[10px] font-mono text-emerald-700 dark:text-emerald-400">Ref: {trip.epod.consignmentNumber} • {trip.epod.signedAt}</span>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-mono font-bold">
+              STAMPED & SIGNED
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            {/* Stamped DO Graphic */}
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 space-y-2">
+              <div className="text-[10px] font-mono text-slate-500 font-bold uppercase">1. Physical Stamped Delivery Note Photo</div>
+              <div className="border border-dashed border-rose-300 bg-rose-50/60 dark:bg-rose-950/30 p-2.5 rounded-lg text-center relative overflow-hidden">
+                <div className="text-[9.5px] font-mono font-bold text-slate-800 dark:text-slate-200">AL NABOODAH CONTRACTING LLC</div>
+                <div className="text-[8px] text-slate-500">SITE DELIVERY NOTE #{trip.epod.consignmentNumber}</div>
+                <div className="my-1.5 py-0.5 px-2.5 border-2 border-dashed border-rose-600 text-rose-600 font-black text-[9px] inline-block -rotate-2 rounded">
+                  ★ RECEIVED & STAMPED ★
+                </div>
+                <div className="text-[8px] font-mono text-slate-600 dark:text-slate-400">Signed by: {trip.epod.receiverName}</div>
+              </div>
+              <div className="text-[8px] font-mono text-slate-400 flex justify-between">
+                <span>📍 GPS Watermarked</span>
+                <span className="text-emerald-600 font-bold">Tamper-Proof ✓</span>
+              </div>
+            </div>
+
+            {/* Offloaded Machine Graphic */}
+            <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 space-y-2">
+              <div className="text-[10px] font-mono text-slate-500 font-bold uppercase">2. On-Site Cargo Offload Photo</div>
+              <div className="bg-slate-100 dark:bg-slate-800 h-24 rounded-lg flex flex-col items-center justify-center text-center p-2">
+                <span className="text-xl">🚜</span>
+                <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 mt-0.5">{trip.cargoDescription.split(' ')[0]} Placed Safely at Site Bay</span>
+                <span className="text-[8px] text-emerald-600 font-mono font-bold mt-0.5">No Mechanical Damage • Offload Clean</span>
+              </div>
+              <div className="text-[8px] font-mono text-slate-400 text-right">
+                Site Logistics Inspected
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Cargo & Site Specifications */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cargo Card */}

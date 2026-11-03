@@ -6,7 +6,8 @@ import InteractiveMap from './InteractiveMap';
 import { 
   Truck, ShieldCheck, MapPin, Gauge, Radio, Play, Pause, 
   RotateCcw, CheckCircle2, AlertTriangle, FileText, Plus,
-  Search, ExternalLink, BatteryCharging, UserCheck, Eye, Layers
+  Search, ExternalLink, BatteryCharging, UserCheck, Eye, Layers,
+  Camera, Upload
 } from './Icons';
 
 interface OpsAdminViewProps {
@@ -469,16 +470,21 @@ export default function OpsAdminView({
         </div>
       </div>
 
-      {/* ePOD Inspector Modal */}
+      {/* ePOD Inspector Modal - Photo-First Stamped DO & Offload Evidence */}
       {inspectEpodTrip && inspectEpodTrip.epod && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className={`max-w-md w-full rounded-3xl p-6 shadow-2xl border space-y-4 ${
+          <div className={`max-w-lg w-full rounded-3xl p-6 shadow-2xl border space-y-4 max-h-[90vh] overflow-y-auto ${
             isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-900 border-slate-800 text-white'
           }`}>
             <div className="flex items-center justify-between border-b pb-3">
               <div>
-                <h3 className="font-black text-base">Verified Delivery Proof</h3>
-                <span className="text-xs font-mono text-slate-500">REF: {inspectEpodTrip.epod.consignmentNumber}</span>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-base">Verified Proof of Delivery (ePOD)</h3>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 text-[10px] font-mono font-bold">
+                    PHOTO CONFIRMED
+                  </span>
+                </div>
+                <span className="text-xs font-mono text-slate-500">CONSIGNMENT REF: {inspectEpodTrip.epod.consignmentNumber}</span>
               </div>
               <button
                 onClick={() => setInspectEpodTrip(null)}
@@ -488,38 +494,132 @@ export default function OpsAdminView({
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1">
-                <div className="text-slate-500 font-mono text-[10px]">CONSIGNEE RECEIVER</div>
-                <div className="font-bold text-sm text-slate-900">{inspectEpodTrip.epod.receiverName}</div>
-                <div className="text-slate-600 text-xs">{inspectEpodTrip.epod.receiverRole}</div>
-                <div className="text-slate-500 font-mono text-[11px]">{inspectEpodTrip.epod.receiverPhone}</div>
-              </div>
+            <div className="space-y-3.5 text-xs">
+              {/* PRIMARY EVIDENCE 1: STAMPED PHYSICAL DELIVERY NOTE PHOTO */}
+              <div className="rounded-2xl border border-slate-300 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-950 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-slate-100 text-[11px]">
+                    <FileText className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Physical Stamped & Signed Delivery Note (DO)</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-emerald-600 font-bold bg-emerald-500/10 px-2 py-0.5 rounded">
+                    LEGAL EVIDENCE
+                  </span>
+                </div>
 
-              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <div className="text-slate-500 font-mono text-[10px] mb-1">SIGNATURE AUDIT TRAIL</div>
-                <div className="bg-white p-2 rounded-lg border border-slate-300 flex items-center justify-center h-20">
-                  <div className="text-emerald-600 font-mono text-xs font-bold flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span>Cryptographically Signed & Timestamped</span>
+                {/* Stamped DO Visual Preview */}
+                <div className="relative rounded-xl border border-slate-300 dark:border-slate-700 bg-amber-50/70 dark:bg-slate-900/90 p-3 text-left shadow-inner">
+                  <div className="flex justify-between items-start border-b border-dashed border-slate-300 dark:border-slate-700 pb-1.5">
+                    <div>
+                      <div className="text-[10px] font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                        AL NABOODAH CONTRACTING LLC
+                      </div>
+                      <div className="text-[8px] text-slate-500 font-mono">
+                        PROJECT SITE OFFICE • CONSIGNMENT #{inspectEpodTrip.epod.consignmentNumber}
+                      </div>
+                    </div>
+                    <span className="text-[8px] font-mono bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded">
+                      ORIGINAL COPY
+                    </span>
+                  </div>
+
+                  <div className="text-[9px] text-slate-700 dark:text-slate-300 font-mono py-1 space-y-0.5">
+                    <div>CARGO: <strong>{inspectEpodTrip.cargoDescription}</strong></div>
+                    <div>DESTINATION: {inspectEpodTrip.destinationName}</div>
+                    <div>DRIVER / TRUCK: {inspectEpodTrip.driverName} ({inspectEpodTrip.vehiclePlate})</div>
+                  </div>
+
+                  {/* Red Contractor Stamp with Signature Stroke */}
+                  <div className="pt-2 flex items-center justify-between">
+                    <div className="relative inline-block border-2 border-dashed border-rose-600 text-rose-600 rounded-lg px-3 py-1 -rotate-2 bg-rose-50/90 shadow-sm">
+                      <div className="text-[8.5px] font-black tracking-widest text-center leading-none">
+                        ★ RECEIVED & APPROVED ★
+                      </div>
+                      <div className="text-[8px] font-bold text-center leading-none mt-1">
+                        SAADIYAT SITE LOGISTICS DEPT
+                      </div>
+                      <div className="text-[7px] font-mono text-center text-rose-800 mt-0.5">
+                        {inspectEpodTrip.epod.signedAt} • GATE 3
+                      </div>
+                      {/* Blue Ink Signature Path */}
+                      <svg className="absolute -inset-1 w-full h-full pointer-events-none" viewBox="0 0 100 35">
+                        <path d="M 5 24 Q 30 6 50 22 T 80 12 T 96 20" stroke="#1D4ED8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                      </svg>
+                    </div>
+
+                    <div className="text-right text-[9px] space-y-0.5 font-mono">
+                      <div className="text-slate-500 text-[8px]">VERIFIED SITE RECEIVER</div>
+                      <div className="font-bold text-slate-900 dark:text-slate-100">{inspectEpodTrip.epod.receiverName}</div>
+                      <div className="text-slate-500 text-[8px]">{inspectEpodTrip.epod.receiverRole}</div>
+                    </div>
+                  </div>
+
+                  {/* GPS Watermark Ribbon */}
+                  <div className="mt-2 pt-1.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-[8px] font-mono text-slate-500">
+                    <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-bold">
+                      <MapPin className="w-2.5 h-2.5 text-amber-500" />
+                      {inspectEpodTrip.epod.watermarkGps || '24.5332° N, 54.4021° E • Saadiyat Cultural District'}
+                    </span>
+                    <span className="text-emerald-600 font-bold">TAMPER-PROOF SHA-256 ✓</span>
                   </div>
                 </div>
-                <div className="text-[10px] font-mono text-slate-400 mt-1">
-                  Signed At: {inspectEpodTrip.epod.signedAt}
+              </div>
+
+              {/* SECONDARY EVIDENCE: OFFLOADED EQUIPMENT PHOTO */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950 space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-800 dark:text-slate-200">
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-emerald-500" />
+                    <span>Site Cargo Placement Photo</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-emerald-600 font-bold">
+                    OFFLOAD VERIFIED
+                  </span>
+                </div>
+                <div className="h-16 rounded-xl bg-gradient-to-r from-slate-200 to-slate-300 dark:from-slate-800 dark:to-slate-900 flex items-center justify-center p-2 text-center text-xs">
+                  <div className="space-y-0.5">
+                    <div className="font-bold text-slate-800 dark:text-slate-200 flex items-center justify-center gap-1.5">
+                      <span>🚜</span>
+                      <span>{inspectEpodTrip.cargoDescription.split(' ')[0]} Offloaded Safely at Project Site Bay 4</span>
+                    </div>
+                    <div className="text-[9px] font-mono text-emerald-700 dark:text-emerald-400 font-bold">
+                      Zero Site Demurrage • Inspected by Site Logistics
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="text-[11px] text-slate-500 bg-emerald-50 border border-emerald-200 p-2.5 rounded-xl text-emerald-800">
-                <strong>Notes:</strong> {inspectEpodTrip.epod.deliveryNotes}
+              {/* Consignee & Delivery Notes */}
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 p-2.5 rounded-xl text-emerald-900 dark:text-emerald-200 space-y-1">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span>RECEIVER: <strong>{inspectEpodTrip.epod.receiverName}</strong> ({inspectEpodTrip.epod.receiverPhone})</span>
+                  <span>{inspectEpodTrip.epod.signedAt}</span>
+                </div>
+                <div className="text-[11px]">
+                  <strong>Site Notes:</strong> {inspectEpodTrip.epod.deliveryNotes}
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={() => setInspectEpodTrip(null)}
-              className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
-            >
-              Close Inspector
-            </button>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                onClick={() => {
+                  alert('Generating PDF Delivery Certificate with stamped photo and GPS audit watermark...');
+                }}
+                className="py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Download Stamped PDF
+              </button>
+
+              <button
+                onClick={() => setInspectEpodTrip(null)}
+                className="py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs"
+              >
+                Close Inspector
+              </button>
+            </div>
           </div>
         </div>
       )}
