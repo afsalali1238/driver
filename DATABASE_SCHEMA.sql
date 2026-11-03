@@ -267,3 +267,94 @@ VALUES
     ('55555555-5555-5555-5555-555555555551', '44444444-4444-4444-4444-444444444441', 24.9810, 55.1012, 52.4, 155.0, 4.0, 84, NOW() - INTERVAL '10 minutes'),
     ('55555555-5555-5555-5555-555555555551', '44444444-4444-4444-4444-444444444441', 24.9652, 55.1145, 64.1, 162.0, 3.8, 83, NOW() - INTERVAL '5 minutes'),
     ('55555555-5555-5555-5555-555555555551', '44444444-4444-4444-4444-444444444441', 24.9412, 55.1280, 58.7, 168.0, 4.1, 82, NOW() - INTERVAL '30 seconds');
+
+-- ============================================================================
+-- 10. EXTENSIONS: MARKETPLACE RFQ/PO, COMPLIANCE, CALENDAR & EARNINGS
+-- ============================================================================
+
+-- A. MARKETPLACE RFQS & ORDERS
+CREATE TABLE IF NOT EXISTS rfqs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketplace_rfq_id VARCHAR(100) UNIQUE, -- External ID from marketplace (Voucher 100)
+    marketplace_po_id VARCHAR(100),         -- External PO ID (Voucher 400)
+    vendor_id VARCHAR(100),                 -- External Transporter/Vendor Account ID
+    customer_name VARCHAR(255) NOT NULL,
+    customer_phone VARCHAR(30) NOT NULL,
+    cargo_type VARCHAR(100) NOT NULL,
+    cargo_weight_tons NUMERIC(8, 2) NOT NULL,
+    required_equipment VARCHAR(100) NOT NULL,
+    pickup_address TEXT NOT NULL,
+    pickup_lat DOUBLE PRECISION NOT NULL,
+    pickup_lon DOUBLE PRECISION NOT NULL,
+    dropoff_address TEXT NOT NULL,
+    dropoff_lat DOUBLE PRECISION NOT NULL,
+    dropoff_lon DOUBLE PRECISION NOT NULL,
+    scheduled_pickup_at TIMESTAMPTZ NOT NULL,
+    agreed_rate NUMERIC(10, 2) NOT NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'AWARDED', -- 'QUOTED', 'AWARDED', 'CONVERTED_TO_TRIP', 'CANCELLED'
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Link trips back to RFQs
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS rfq_id UUID REFERENCES rfqs(id) ON DELETE SET NULL;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS po_number VARCHAR(100);
+
+-- B. DRIVER COMPLIANCE & DOCUMENT VAULT
+CREATE TABLE IF NOT EXISTS driver_documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    document_type VARCHAR(50) NOT NULL, 
+    -- 'DRIVING_LICENSE', 'EMIRATES_ID', 'VEHICLE_MULKIYA', 'CICPA_PASS', 'JAFZA_PASS', 'PORT_PASS'
+    document_number VARCHAR(100) NOT NULL,
+    expiry_date DATE NOT NULL,
+    front_image_url TEXT NOT NULL,
+    back_image_url TEXT,
+    verification_status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'
+    rejection_reason TEXT,
+    verified_by UUID REFERENCES admin_users(id),
+    verified_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_driver_doc_type UNIQUE (driver_id, document_type)
+);
+
+CREATE INDEX IF NOT EXISTS idx_driver_docs_exp ON driver_documents(expiry_date, verification_status);
+
+-- C. DRIVER CALENDAR & SCHEDULE MATRIX
+CREATE TABLE IF NOT EXISTS driver_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    trip_id UUID REFERENCES trips(id) ON DELETE CASCADE,
+    block_type VARCHAR(30) NOT NULL, -- 'TRIP_BOOKED', 'MAINTENANCE', 'LEAVE', 'MANDATORY_REST'
+    title VARCHAR(150) NOT NULL,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_driver_sched ON driver_schedules(driver_id, start_time, end_time);
+
+-- D. DRIVER FINANCIAL EARNINGS & SETTLEMENTS LEDGER
+CREATE TABLE IF NOT EXISTS driver_earnings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    driver_id UUID NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    trip_id UUID UNIQUE NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    base_fare NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    waiting_charge NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    waiting_hours NUMERIC(4, 2) NOT NULL DEFAULT 0.00,
+    toll_reimbursements NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    bonuses NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    deductions NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    total_amount NUMERIC(10, 2) NOT NULL DEFAULT 0.00,
+    currency VARCHAR(10) NOT NULL DEFAULT 'AED',
+    payout_status VARCHAR(30) NOT NULL DEFAULT 'PENDING', -- 'PENDING', 'APPROVED', 'PAID'
+    payout_reference VARCHAR(100),
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_driver_earnings ON driver_earnings(driver_id, payout_status);
+

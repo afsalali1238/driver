@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
 import { DUMMY_TRIPS, TripData, FLEET_METRICS } from '../data/dummyData';
 import OpsAdminView from '../components/OpsAdminView';
 import DriverMobileView from '../components/DriverMobileView';
@@ -14,9 +14,58 @@ import {
   Sun, Moon, Building2, Users
 } from '../components/Icons';
 
+interface ErrorBoundaryProps {
+  children?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class PortalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false };
+
+  public static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Portal Error caught:', error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 text-slate-900">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200 p-6 text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 font-black text-xl">
+              K
+            </div>
+            <h2 className="text-xl font-black text-slate-900">Portal View Recovered</h2>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Click below to return cleanly to the main launchpad.
+            </p>
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  window.location.href = window.location.pathname;
+                }
+              }}
+              className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-md shadow-amber-500/20"
+            >
+              Return to Launchpad
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 type ActiveView = 'LAUNCHPAD' | 'OPS' | 'DRIVER' | 'CUSTOMER' | 'FLEET_OWNER';
 
-export default function PrototypeHubPage() {
+function PrototypeContent() {
   const [activeTab, setActiveTab] = useState<ActiveView>('LAUNCHPAD');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [trips, setTrips] = useState<TripData[]>(DUMMY_TRIPS);
@@ -739,5 +788,13 @@ export default function PrototypeHubPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function PrototypeHubPage() {
+  return (
+    <PortalErrorBoundary>
+      <PrototypeContent />
+    </PortalErrorBoundary>
   );
 }

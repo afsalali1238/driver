@@ -1,15 +1,16 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { TripData } from '../../data/dummyData';
+import { TripData, DUMMY_TRIPS } from '../../data/dummyData';
 import { 
   Truck, Navigation, ShieldCheck, Camera, CheckSquare, 
   MapPin, Phone, WifiOff, Wifi, Globe, PenTool, CheckCircle2,
-  RefreshCw, FileText, ArrowRight, Battery, Signal, ArrowLeft
+  RefreshCw, FileText, ArrowRight, Battery, Signal, ArrowLeft,
+  Smartphone
 } from './Icons';
 
 interface DriverMobileViewProps {
-  trip: TripData;
+  trip?: TripData;
   onTripStatusChange?: (newStatus: TripData['status']) => void;
   theme?: 'light' | 'dark';
   onBackToLaunchpad?: () => void;
@@ -23,12 +24,13 @@ export default function DriverMobileView({
   theme = 'light',
   onBackToLaunchpad
 }: DriverMobileViewProps) {
+  const safeTrip = trip || DUMMY_TRIPS[0];
   const isLight = theme === 'light';
   const [lang, setLang] = useState<Language>('EN');
   const [activeTab, setActiveTab] = useState<'TRIP' | 'INSPECT' | 'EPOD'>('TRIP');
   const [isOffline, setIsOffline] = useState(false);
   const [bufferedBreadcrumbs, setBufferedBreadcrumbs] = useState(0);
-  const [tripState, setTripState] = useState<TripData['status']>(trip.status);
+  const [tripState, setTripState] = useState<TripData['status']>(safeTrip?.status || 'IN_TRANSIT');
   
   // Signature pad state
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -219,15 +221,15 @@ export default function DriverMobileView({
           }`}>
             <div className="flex justify-between">
               <span className="text-slate-500 text-[10px]">VEHICLE:</span>
-              <strong>{trip.vehiclePlate} ({trip.vehicleType.split(' ')[0]})</strong>
+              <strong>{safeTrip?.vehiclePlate || 'DXB-T-49102'} ({(safeTrip?.vehicleType || 'Flatbed 40ft').split(' ')[0]})</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 text-[10px]">DRIVER:</span>
-              <strong>{trip.driverName}</strong>
+              <strong>{safeTrip?.driverName || 'Rashid Khan'}</strong>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 text-[10px]">CARGO:</span>
-              <strong className="text-amber-600 truncate max-w-[180px]">{trip.cargoDescription}</strong>
+              <strong className="text-amber-600 truncate max-w-[180px]">{safeTrip?.cargoDescription || 'Excavator'}</strong>
             </div>
           </div>
         </div>
@@ -400,12 +402,12 @@ export default function DriverMobileView({
                 </div>
                 <div>
                   <div className="font-black text-xs tracking-wider">{t.appName}</div>
-                  <div className="text-amber-600 font-mono text-[9px] font-bold">{trip.vehiclePlate}</div>
+                  <div className="text-amber-600 font-mono text-[9px] font-bold">{safeTrip?.vehiclePlate || 'DXB-T-49102'}</div>
                 </div>
               </div>
 
               <div className="text-right">
-                <div className="text-slate-500 text-[9px] uppercase font-bold">{trip.driverName.split(' ')[0]}</div>
+                <div className="text-slate-500 text-[9px] uppercase font-bold">{(safeTrip?.driverName || 'Rashid').split(' ')[0]}</div>
                 <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   ACTIVE GPS
@@ -477,13 +479,13 @@ export default function DriverMobileView({
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[9px] font-mono text-amber-600 font-bold uppercase">{t.cargo}</span>
-                      <span className="font-mono text-[9px] text-slate-400">{trip.id}</span>
+                      <span className="font-mono text-[9px] text-slate-400">{safeTrip?.id || 'KSP-EQ-101'}</span>
                     </div>
                     <div className="font-black text-xs leading-snug">
-                      {trip.cargoDescription}
+                      {safeTrip?.cargoDescription || 'CAT 320D Excavator'}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800 font-mono">
-                      <span>WEIGHT: <strong className="text-slate-800 dark:text-slate-200">{trip.cargoWeightTon} TON</strong></span>
+                      <span>WEIGHT: <strong className="text-slate-800 dark:text-slate-200">{safeTrip?.cargoWeightTon || 22.4} TON</strong></span>
                       <span>•</span>
                       <span>PERMIT: <strong className="text-emerald-600">RTA OK</strong></span>
                     </div>
@@ -500,12 +502,12 @@ export default function DriverMobileView({
                       </div>
                       <div>
                         <div className="text-[9px] font-mono text-emerald-600 uppercase font-bold">{t.pickup}</div>
-                        <div className="font-bold text-xs">{trip.originName}</div>
+                        <div className="font-bold text-xs">{safeTrip?.originName || 'Dubai Logistics City'}</div>
                       </div>
                     </div>
 
                     <div className="ml-2.5 pl-2 border-l border-dashed border-slate-300 dark:border-slate-700 py-0.5 text-[9px] font-mono text-slate-400">
-                      Corridor E11 • ~{trip.distanceRemainingKm} km
+                      Corridor E11 • ~{safeTrip?.distanceRemainingKm || 45} km
                     </div>
 
                     {/* Destination */}
@@ -515,7 +517,7 @@ export default function DriverMobileView({
                       </div>
                       <div>
                         <div className="text-[9px] font-mono text-amber-600 uppercase font-bold">{t.drop}</div>
-                        <div className="font-bold text-xs">{trip.destinationName}</div>
+                        <div className="font-bold text-xs">{safeTrip?.destinationName || 'Saadiyat Island'}</div>
                       </div>
                     </div>
                   </div>
@@ -564,8 +566,8 @@ export default function DriverMobileView({
                   <div className={`p-2 rounded-lg border text-[10px] font-mono flex items-center justify-between ${
                     isLight ? 'bg-slate-50 border-slate-200 text-slate-600' : 'bg-slate-900 border-slate-800 text-slate-400'
                   }`}>
-                    <span>SPEED: <strong className="text-slate-800 dark:text-slate-200">{trip.speedKmh} KM/H</strong></span>
-                    <span>BATTERY: <strong className="text-emerald-600">{trip.batteryPct.toFixed(0)}%</strong></span>
+                    <span>SPEED: <strong className="text-slate-800 dark:text-slate-200">{safeTrip?.speedKmh || 65} KM/H</strong></span>
+                    <span>BATTERY: <strong className="text-emerald-600">{(safeTrip?.batteryPct ?? 88).toFixed(0)}%</strong></span>
                     <span>INTERVAL: <strong className="text-blue-600">5 SEC</strong></span>
                   </div>
                 </div>
